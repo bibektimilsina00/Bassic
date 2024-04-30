@@ -1,12 +1,12 @@
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/CustomWidgets/bouncy_sliver_scroll_view.dart';
-import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
-import 'package:blackhole/CustomWidgets/download_button.dart';
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/Screens/Common/song_list.dart';
-import 'package:blackhole/Screens/Search/artists.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/CustomWidgets/bouncy_sliver_scroll_view.dart';
+import 'package:bassic/CustomWidgets/copy_clipboard.dart';
+import 'package:bassic/CustomWidgets/download_button.dart';
+import 'package:bassic/CustomWidgets/empty_screen.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/Screens/Common/song_list.dart';
+import 'package:bassic/Screens/Search/artists.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -30,82 +30,6 @@ class _AlbumSearchPageState extends State<AlbumSearchPage> {
   bool loading = false;
   List<Map>? _searchedList;
   final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent &&
-          !loading) {
-        page += 1;
-        _fetchData();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _scrollController.dispose();
-  }
-
-  void _fetchData() {
-    loading = true;
-    switch (widget.type) {
-      case 'Playlists':
-        SaavnAPI()
-            .fetchAlbums(
-          searchQuery: widget.query,
-          type: 'playlist',
-          page: page,
-        )
-            .then((value) {
-          final temp = _searchedList ?? [];
-          temp.addAll(value);
-          setState(() {
-            _searchedList = temp;
-            loading = false;
-          });
-        });
-        break;
-      case 'Albums':
-        SaavnAPI()
-            .fetchAlbums(
-          searchQuery: widget.query,
-          type: 'album',
-          page: page,
-        )
-            .then((value) {
-          final temp = _searchedList ?? [];
-          temp.addAll(value);
-          setState(() {
-            _searchedList = temp;
-            loading = false;
-          });
-        });
-        break;
-      case 'Artists':
-        SaavnAPI()
-            .fetchAlbums(
-          searchQuery: widget.query,
-          type: 'artist',
-          page: page,
-        )
-            .then((value) {
-          final temp = _searchedList ?? [];
-          temp.addAll(value);
-          setState(() {
-            _searchedList = temp;
-            loading = false;
-          });
-        });
-        break;
-      default:
-        break;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,5 +153,81 @@ class _AlbumSearchPageState extends State<AlbumSearchPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _scrollController.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent &&
+          !loading) {
+        page += 1;
+        _fetchData();
+      }
+    });
+  }
+
+  void _fetchData() {
+    loading = true;
+    switch (widget.type) {
+      case 'Playlists':
+        SaavnAPI()
+            .fetchAlbums(
+          searchQuery: widget.query,
+          type: 'playlist',
+          page: page,
+        )
+            .then((value) {
+          final temp = _searchedList ?? [];
+          temp.addAll(value);
+          setState(() {
+            _searchedList = temp;
+            loading = false;
+          });
+        });
+        break;
+      case 'Albums':
+        SaavnAPI()
+            .fetchAlbums(
+          searchQuery: widget.query,
+          type: 'album',
+          page: page,
+        )
+            .then((value) {
+          final temp = _searchedList ?? [];
+          temp.addAll(value);
+          setState(() {
+            _searchedList = temp;
+            loading = false;
+          });
+        });
+        break;
+      case 'Artists':
+        SaavnAPI()
+            .fetchAlbums(
+          searchQuery: widget.query,
+          type: 'artist',
+          page: page,
+        )
+            .then((value) {
+          final temp = _searchedList ?? [];
+          temp.addAll(value);
+          setState(() {
+            _searchedList = temp;
+            loading = false;
+          });
+        });
+        break;
+      default:
+        break;
+    }
   }
 }

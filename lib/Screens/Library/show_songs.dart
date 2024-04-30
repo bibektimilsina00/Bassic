@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -31,75 +31,6 @@ class _SongsListState extends State<SongsList> {
   int sortValue = Hive.box('settings').get('sortValue', defaultValue: 1) as int;
   int orderValue =
       Hive.box('settings').get('orderValue', defaultValue: 1) as int;
-
-  Future<void> getSongs() async {
-    added = true;
-    _songs = widget.data;
-    offline = widget.offline;
-    if (!offline) original = List.from(_songs);
-
-    sortSongs(sortVal: sortValue, order: orderValue);
-
-    processStatus = true;
-    setState(() {});
-  }
-
-  void sortSongs({required int sortVal, required int order}) {
-    switch (sortVal) {
-      case 0:
-        _songs.sort(
-          (a, b) => a['title']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['title'].toString().toUpperCase()),
-        );
-        break;
-      case 1:
-        _songs.sort(
-          (a, b) => a['dateAdded']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['dateAdded'].toString().toUpperCase()),
-        );
-        break;
-      case 2:
-        _songs.sort(
-          (a, b) => a['album']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['album'].toString().toUpperCase()),
-        );
-        break;
-      case 3:
-        _songs.sort(
-          (a, b) => a['artist']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['artist'].toString().toUpperCase()),
-        );
-        break;
-      case 4:
-        _songs.sort(
-          (a, b) => a['duration']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['duration'].toString().toUpperCase()),
-        );
-        break;
-      default:
-        _songs.sort(
-          (b, a) => a['dateAdded']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['dateAdded'].toString().toUpperCase()),
-        );
-        break;
-    }
-
-    if (order == 1) {
-      _songs = _songs.reversed.toList();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,5 +241,74 @@ class _SongsListState extends State<SongsList> {
         ],
       ),
     );
+  }
+
+  Future<void> getSongs() async {
+    added = true;
+    _songs = widget.data;
+    offline = widget.offline;
+    if (!offline) original = List.from(_songs);
+
+    sortSongs(sortVal: sortValue, order: orderValue);
+
+    processStatus = true;
+    setState(() {});
+  }
+
+  void sortSongs({required int sortVal, required int order}) {
+    switch (sortVal) {
+      case 0:
+        _songs.sort(
+          (a, b) => a['title']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['title'].toString().toUpperCase()),
+        );
+        break;
+      case 1:
+        _songs.sort(
+          (a, b) => a['dateAdded']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['dateAdded'].toString().toUpperCase()),
+        );
+        break;
+      case 2:
+        _songs.sort(
+          (a, b) => a['album']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['album'].toString().toUpperCase()),
+        );
+        break;
+      case 3:
+        _songs.sort(
+          (a, b) => a['artist']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['artist'].toString().toUpperCase()),
+        );
+        break;
+      case 4:
+        _songs.sort(
+          (a, b) => a['duration']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['duration'].toString().toUpperCase()),
+        );
+        break;
+      default:
+        _songs.sort(
+          (b, a) => a['dateAdded']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['dateAdded'].toString().toUpperCase()),
+        );
+        break;
+    }
+
+    if (order == 1) {
+      _songs = _songs.reversed.toList();
+    }
   }
 }

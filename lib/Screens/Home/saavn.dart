@@ -1,30 +1,30 @@
 import 'dart:io';
 
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/CustomWidgets/collage.dart';
-import 'package:blackhole/CustomWidgets/horizontal_albumlist.dart';
-import 'package:blackhole/CustomWidgets/like_button.dart';
-import 'package:blackhole/CustomWidgets/on_hover.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/song_tile_trailing_menu.dart';
-import 'package:blackhole/Helpers/extensions.dart';
-import 'package:blackhole/Helpers/format.dart';
-import 'package:blackhole/Screens/Common/song_list.dart';
-import 'package:blackhole/Screens/Library/liked.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
-import 'package:blackhole/Screens/Search/artists.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/CustomWidgets/collage.dart';
+import 'package:bassic/CustomWidgets/horizontal_albumlist.dart';
+import 'package:bassic/CustomWidgets/like_button.dart';
+import 'package:bassic/CustomWidgets/on_hover.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/CustomWidgets/song_tile_trailing_menu.dart';
+import 'package:bassic/Helpers/extensions.dart';
+import 'package:bassic/Helpers/format.dart';
+import 'package:bassic/Screens/Common/song_list.dart';
+import 'package:bassic/Screens/Library/liked.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
+import 'package:bassic/Screens/Search/artists.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 
+Map data = Hive.box('cache').get('homepage', defaultValue: {}) as Map;
 bool fetched = false;
-List preferredLanguage = Hive.box('settings')
-    .get('preferredLanguage', defaultValue: ['Hindi']) as List;
 List likedRadio =
     Hive.box('settings').get('likedRadio', defaultValue: []) as List;
-Map data = Hive.box('cache').get('homepage', defaultValue: {}) as Map;
 List lists = ['recent', 'playlist', ...?data['collections']];
+List preferredLanguage = Hive.box('settings')
+    .get('preferredLanguage', defaultValue: ['Hindi']) as List;
 
 class SaavnHomePage extends StatefulWidget {
   @override
@@ -46,54 +46,6 @@ class _SaavnHomePageState extends State<SaavnHomePage>
       Hive.box('settings').get('playlistDetails', defaultValue: {}) as Map;
   int recentIndex = 0;
   int playlistIndex = 1;
-
-  Future<void> getHomePageData() async {
-    Map recievedData = await SaavnAPI().fetchHomePageData();
-    if (recievedData.isNotEmpty) {
-      Hive.box('cache').put('homepage', recievedData);
-      data = recievedData;
-      lists = ['recent', 'playlist', ...?data['collections']];
-      lists.insert((lists.length / 2).round(), 'likedArtists');
-    }
-    setState(() {});
-    recievedData = await FormatResponse.formatPromoLists(data);
-    if (recievedData.isNotEmpty) {
-      Hive.box('cache').put('homepage', recievedData);
-      data = recievedData;
-      lists = ['recent', 'playlist', ...?data['collections']];
-      lists.insert((lists.length / 2).round(), 'likedArtists');
-    }
-    setState(() {});
-  }
-
-  String getSubTitle(Map item) {
-    final type = item['type'];
-    switch (type) {
-      case 'charts':
-        return '';
-      case 'radio_station':
-        return 'Radio • ${item['subtitle']?.toString().unescape()}';
-      case 'playlist':
-        return 'Playlist • ${item['subtitle']?.toString().unescape() ?? 'JioSaavn'}';
-      case 'song':
-        return 'Single • ${item['artist']?.toString().unescape()}';
-      case 'album':
-        final artists = item['more_info']?['artistMap']?['artists']
-            .map((artist) => artist['name'])
-            .toList();
-        if (artists != null) {
-          return 'Album • ${artists?.join(', ')?.toString().unescape()}';
-        } else if (item['subtitle'] != null && item['subtitle'] != '') {
-          return 'Album • ${item['subtitle']?.toString().unescape()}';
-        }
-        return 'Album';
-      default:
-        final artists = item['more_info']?['artistMap']?['artists']
-            .map((artist) => artist['name'])
-            .toList();
-        return artists?.join(', ')?.toString().unescape() ?? '';
-    }
-  }
 
   @override
   bool get wantKeepAlive => true;
@@ -858,5 +810,53 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                     );
             },
           );
+  }
+
+  Future<void> getHomePageData() async {
+    Map recievedData = await SaavnAPI().fetchHomePageData();
+    if (recievedData.isNotEmpty) {
+      Hive.box('cache').put('homepage', recievedData);
+      data = recievedData;
+      lists = ['recent', 'playlist', ...?data['collections']];
+      lists.insert((lists.length / 2).round(), 'likedArtists');
+    }
+    setState(() {});
+    recievedData = await FormatResponse.formatPromoLists(data);
+    if (recievedData.isNotEmpty) {
+      Hive.box('cache').put('homepage', recievedData);
+      data = recievedData;
+      lists = ['recent', 'playlist', ...?data['collections']];
+      lists.insert((lists.length / 2).round(), 'likedArtists');
+    }
+    setState(() {});
+  }
+
+  String getSubTitle(Map item) {
+    final type = item['type'];
+    switch (type) {
+      case 'charts':
+        return '';
+      case 'radio_station':
+        return 'Radio • ${item['subtitle']?.toString().unescape()}';
+      case 'playlist':
+        return 'Playlist • ${item['subtitle']?.toString().unescape() ?? 'JioSaavn'}';
+      case 'song':
+        return 'Single • ${item['artist']?.toString().unescape()}';
+      case 'album':
+        final artists = item['more_info']?['artistMap']?['artists']
+            .map((artist) => artist['name'])
+            .toList();
+        if (artists != null) {
+          return 'Album • ${artists?.join(', ')?.toString().unescape()}';
+        } else if (item['subtitle'] != null && item['subtitle'] != '') {
+          return 'Album • ${item['subtitle']?.toString().unescape()}';
+        }
+        return 'Album';
+      default:
+        final artists = item['more_info']?['artistMap']?['artists']
+            .map((artist) => artist['name'])
+            .toList();
+        return artists?.join(', ')?.toString().unescape() ?? '';
+    }
   }
 }

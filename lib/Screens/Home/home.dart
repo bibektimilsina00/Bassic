@@ -1,23 +1,23 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:blackhole/CustomWidgets/custom_physics.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/textinput_dialog.dart';
-import 'package:blackhole/Helpers/backup_restore.dart';
-import 'package:blackhole/Helpers/downloads_checker.dart';
-import 'package:blackhole/Helpers/extensions.dart';
-import 'package:blackhole/Helpers/supabase.dart';
-import 'package:blackhole/Screens/Home/saavn.dart';
-import 'package:blackhole/Screens/Library/library.dart';
-import 'package:blackhole/Screens/LocalMusic/downed_songs.dart';
-import 'package:blackhole/Screens/Search/search.dart';
-import 'package:blackhole/Screens/Settings/setting.dart';
-import 'package:blackhole/Screens/Top Charts/top.dart';
-import 'package:blackhole/Screens/YouTube/youtube_home.dart';
-import 'package:blackhole/Services/ext_storage_provider.dart';
+import 'package:bassic/CustomWidgets/custom_physics.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/CustomWidgets/textinput_dialog.dart';
+import 'package:bassic/Helpers/backup_restore.dart';
+import 'package:bassic/Helpers/downloads_checker.dart';
+import 'package:bassic/Helpers/extensions.dart';
+import 'package:bassic/Helpers/supabase.dart';
+import 'package:bassic/Screens/Home/saavn.dart';
+import 'package:bassic/Screens/Library/library.dart';
+import 'package:bassic/Screens/LocalMusic/downed_songs.dart';
+import 'package:bassic/Screens/Search/search.dart';
+import 'package:bassic/Screens/Settings/setting.dart';
+import 'package:bassic/Screens/Top Charts/top.dart';
+import 'package:bassic/Screens/YouTube/youtube_home.dart';
+import 'package:bassic/Services/ext_storage_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -45,229 +45,9 @@ class _HomePageState extends State<HomePage> {
       Hive.box('settings').get('autoBackup', defaultValue: false) as bool;
   DateTime? backButtonPressTime;
 
-  void callback() {
-    setState(() {});
-  }
-
-  void _onItemTapped(int index) {
-    _selectedIndex.value = index;
-    _pageController.jumpToPage(
-      index,
-    );
-  }
-
-  bool compareVersion(String latestVersion, String currentVersion) {
-    bool update = false;
-    final List latestList = latestVersion.split('.');
-    final List currentList = currentVersion.split('.');
-
-    for (int i = 0; i < latestList.length; i++) {
-      try {
-        if (int.parse(latestList[i] as String) >
-            int.parse(currentList[i] as String)) {
-          update = true;
-          break;
-        }
-      } catch (e) {
-        break;
-      }
-    }
-    return update;
-  }
-
-  void updateUserDetails(String key, dynamic value) {
-    final userId = Hive.box('settings').get('userId') as String?;
-    SupaBase().updateUserDetails(userId, key, value);
-  }
-
-  Future<bool> handleWillPop(BuildContext context) async {
-    final now = DateTime.now();
-    final backButtonHasNotBeenPressedOrSnackBarHasBeenClosed =
-        backButtonPressTime == null ||
-            now.difference(backButtonPressTime!) > const Duration(seconds: 3);
-
-    if (backButtonHasNotBeenPressedOrSnackBarHasBeenClosed) {
-      backButtonPressTime = now;
-      ShowSnackBar().showSnackBar(
-        context,
-        AppLocalizations.of(context)!.exitConfirm,
-        duration: const Duration(seconds: 2),
-        noAction: true,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  Widget checkVersion() {
-    if (!checked && Theme.of(context).platform == TargetPlatform.android) {
-      checked = true;
-      final SupaBase db = SupaBase();
-      final DateTime now = DateTime.now();
-      final List lastLogin = now
-          .toUtc()
-          .add(const Duration(hours: 5, minutes: 30))
-          .toString()
-          .split('.')
-        ..removeLast()
-        ..join('.');
-      updateUserDetails('lastLogin', '${lastLogin[0]} IST');
-      final String offset =
-          now.timeZoneOffset.toString().replaceAll('.000000', '');
-
-      updateUserDetails(
-        'timeZone',
-        'Zone: ${now.timeZoneName}, Offset: $offset',
-      );
-
-      PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
-        appVersion = packageInfo.version;
-        updateUserDetails('version', packageInfo.version);
-
-        if (checkUpdate) {
-          db.getUpdate().then((Map value) async {
-            if (compareVersion(
-              value['LatestVersion'] as String,
-              appVersion!,
-            )) {
-              List? abis =
-                  await Hive.box('settings').get('supportedAbis') as List?;
-
-              if (abis == null) {
-                final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-                final AndroidDeviceInfo androidDeviceInfo =
-                    await deviceInfo.androidInfo;
-                abis = androidDeviceInfo.supportedAbis;
-                await Hive.box('settings').put('supportedAbis', abis);
-              }
-
-              ShowSnackBar().showSnackBar(
-                context,
-                AppLocalizations.of(context)!.updateAvailable,
-                duration: const Duration(seconds: 15),
-                action: SnackBarAction(
-                  textColor: Theme.of(context).colorScheme.secondary,
-                  label: AppLocalizations.of(context)!.update,
-                  onPressed: () {
-                    Navigator.pop(context);
-                    if (abis!.contains('arm64-v8a')) {
-                      launchUrl(
-                        Uri.parse(value['arm64-v8a'] as String),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    } else {
-                      if (abis.contains('armeabi-v7a')) {
-                        launchUrl(
-                          Uri.parse(value['armeabi-v7a'] as String),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      } else {
-                        launchUrl(
-                          Uri.parse(value['universal'] as String),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      }
-                    }
-                  },
-                ),
-              );
-            }
-          });
-        }
-        if (autoBackup) {
-          final List<String> checked = [
-            AppLocalizations.of(
-              context,
-            )!
-                .settings,
-            AppLocalizations.of(
-              context,
-            )!
-                .downs,
-            AppLocalizations.of(
-              context,
-            )!
-                .playlists,
-          ];
-          final List playlistNames = Hive.box('settings').get(
-            'playlistNames',
-            defaultValue: ['Favorite Songs'],
-          ) as List;
-          final Map<String, List> boxNames = {
-            AppLocalizations.of(
-              context,
-            )!
-                .settings: ['settings'],
-            AppLocalizations.of(
-              context,
-            )!
-                .cache: ['cache'],
-            AppLocalizations.of(
-              context,
-            )!
-                .downs: ['downloads'],
-            AppLocalizations.of(
-              context,
-            )!
-                .playlists: playlistNames,
-          };
-          final String autoBackPath = Hive.box('settings').get(
-            'autoBackPath',
-            defaultValue: '',
-          ) as String;
-          if (autoBackPath == '') {
-            ExtStorageProvider.getExtStorage(
-              dirName: 'BlackHole/Backups',
-            ).then((value) {
-              Hive.box('settings').put('autoBackPath', value);
-              createBackup(
-                context,
-                checked,
-                boxNames,
-                path: value,
-                fileName: 'BlackHole_AutoBackup',
-                showDialog: false,
-              );
-            });
-          } else {
-            createBackup(
-              context,
-              checked,
-              boxNames,
-              path: autoBackPath,
-              fileName: 'BlackHole_AutoBackup',
-              showDialog: false,
-            );
-          }
-        }
-      });
-      if (Hive.box('settings').get('proxyIp') == null) {
-        Hive.box('settings').put('proxyIp', '103.47.67.134');
-      }
-      if (Hive.box('settings').get('proxyPort') == null) {
-        Hive.box('settings').put('proxyPort', 8080);
-      }
-      downloadChecker();
-      return const SizedBox();
-    } else {
-      return const SizedBox();
-    }
-  }
-
   final ScrollController _scrollController = ScrollController();
+
   final PageController _pageController = PageController();
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -900,6 +680,227 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
       ),
+    );
+  }
+
+  void callback() {
+    setState(() {});
+  }
+
+  Widget checkVersion() {
+    if (!checked && Theme.of(context).platform == TargetPlatform.android) {
+      checked = true;
+      final SupaBase db = SupaBase();
+      final DateTime now = DateTime.now();
+      final List lastLogin = now
+          .toUtc()
+          .add(const Duration(hours: 5, minutes: 30))
+          .toString()
+          .split('.')
+        ..removeLast()
+        ..join('.');
+      updateUserDetails('lastLogin', '${lastLogin[0]} IST');
+      final String offset =
+          now.timeZoneOffset.toString().replaceAll('.000000', '');
+
+      updateUserDetails(
+        'timeZone',
+        'Zone: ${now.timeZoneName}, Offset: $offset',
+      );
+
+      PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
+        appVersion = packageInfo.version;
+        updateUserDetails('version', packageInfo.version);
+
+        if (checkUpdate) {
+          db.getUpdate().then((Map value) async {
+            if (compareVersion(
+              value['LatestVersion'] as String,
+              appVersion!,
+            )) {
+              List? abis =
+                  await Hive.box('settings').get('supportedAbis') as List?;
+
+              if (abis == null) {
+                final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+                final AndroidDeviceInfo androidDeviceInfo =
+                    await deviceInfo.androidInfo;
+                abis = androidDeviceInfo.supportedAbis;
+                await Hive.box('settings').put('supportedAbis', abis);
+              }
+
+              ShowSnackBar().showSnackBar(
+                context,
+                AppLocalizations.of(context)!.updateAvailable,
+                duration: const Duration(seconds: 15),
+                action: SnackBarAction(
+                  textColor: Theme.of(context).colorScheme.secondary,
+                  label: AppLocalizations.of(context)!.update,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    if (abis!.contains('arm64-v8a')) {
+                      launchUrl(
+                        Uri.parse(value['arm64-v8a'] as String),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } else {
+                      if (abis.contains('armeabi-v7a')) {
+                        launchUrl(
+                          Uri.parse(value['armeabi-v7a'] as String),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      } else {
+                        launchUrl(
+                          Uri.parse(value['universal'] as String),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
+                    }
+                  },
+                ),
+              );
+            }
+          });
+        }
+        if (autoBackup) {
+          final List<String> checked = [
+            AppLocalizations.of(
+              context,
+            )!
+                .settings,
+            AppLocalizations.of(
+              context,
+            )!
+                .downs,
+            AppLocalizations.of(
+              context,
+            )!
+                .playlists,
+          ];
+          final List playlistNames = Hive.box('settings').get(
+            'playlistNames',
+            defaultValue: ['Favorite Songs'],
+          ) as List;
+          final Map<String, List> boxNames = {
+            AppLocalizations.of(
+              context,
+            )!
+                .settings: ['settings'],
+            AppLocalizations.of(
+              context,
+            )!
+                .cache: ['cache'],
+            AppLocalizations.of(
+              context,
+            )!
+                .downs: ['downloads'],
+            AppLocalizations.of(
+              context,
+            )!
+                .playlists: playlistNames,
+          };
+          final String autoBackPath = Hive.box('settings').get(
+            'autoBackPath',
+            defaultValue: '',
+          ) as String;
+          if (autoBackPath == '') {
+            ExtStorageProvider.getExtStorage(
+              dirName: 'Bassic/Backups',
+            ).then((value) {
+              Hive.box('settings').put('autoBackPath', value);
+              createBackup(
+                context,
+                checked,
+                boxNames,
+                path: value,
+                fileName: 'Bassic_AutoBackup',
+                showDialog: false,
+              );
+            });
+          } else {
+            createBackup(
+              context,
+              checked,
+              boxNames,
+              path: autoBackPath,
+              fileName: 'Bassic_AutoBackup',
+              showDialog: false,
+            );
+          }
+        }
+      });
+      if (Hive.box('settings').get('proxyIp') == null) {
+        Hive.box('settings').put('proxyIp', '103.47.67.134');
+      }
+      if (Hive.box('settings').get('proxyPort') == null) {
+        Hive.box('settings').put('proxyPort', 8080);
+      }
+      downloadChecker();
+      return const SizedBox();
+    } else {
+      return const SizedBox();
+    }
+  }
+
+  bool compareVersion(String latestVersion, String currentVersion) {
+    bool update = false;
+    final List latestList = latestVersion.split('.');
+    final List currentList = currentVersion.split('.');
+
+    for (int i = 0; i < latestList.length; i++) {
+      try {
+        if (int.parse(latestList[i] as String) >
+            int.parse(currentList[i] as String)) {
+          update = true;
+          break;
+        }
+      } catch (e) {
+        break;
+      }
+    }
+    return update;
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> handleWillPop(BuildContext context) async {
+    final now = DateTime.now();
+    final backButtonHasNotBeenPressedOrSnackBarHasBeenClosed =
+        backButtonPressTime == null ||
+            now.difference(backButtonPressTime!) > const Duration(seconds: 3);
+
+    if (backButtonHasNotBeenPressedOrSnackBarHasBeenClosed) {
+      backButtonPressTime = now;
+      ShowSnackBar().showSnackBar(
+        context,
+        AppLocalizations.of(context)!.exitConfirm,
+        duration: const Duration(seconds: 2),
+        noAction: true,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  void updateUserDetails(String key, dynamic value) {
+    final userId = Hive.box('settings').get('userId') as String?;
+    SupaBase().updateUserDetails(userId, key, value);
+  }
+
+  void _onItemTapped(int index) {
+    _selectedIndex.value = index;
+    _pageController.jumpToPage(
+      index,
     );
   }
 }

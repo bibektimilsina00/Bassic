@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:typed_data';
 
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/Helpers/extensions.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/Helpers/extensions.dart';
 import 'package:dart_des/dart_des.dart';
 import 'package:hive/hive.dart';
 

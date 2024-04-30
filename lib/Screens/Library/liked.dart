@@ -1,22 +1,44 @@
-import 'package:blackhole/CustomWidgets/collage.dart';
-import 'package:blackhole/CustomWidgets/custom_physics.dart';
-import 'package:blackhole/CustomWidgets/data_search.dart';
-import 'package:blackhole/CustomWidgets/download_button.dart';
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/like_button.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/playlist_head.dart';
-import 'package:blackhole/CustomWidgets/song_tile_trailing_menu.dart';
-import 'package:blackhole/Helpers/songs_count.dart' as songs_count;
-import 'package:blackhole/Screens/Library/show_songs.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/CustomWidgets/collage.dart';
+import 'package:bassic/CustomWidgets/custom_physics.dart';
+import 'package:bassic/CustomWidgets/data_search.dart';
+import 'package:bassic/CustomWidgets/download_button.dart';
+import 'package:bassic/CustomWidgets/empty_screen.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/like_button.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/CustomWidgets/playlist_head.dart';
+import 'package:bassic/CustomWidgets/song_tile_trailing_menu.dart';
+import 'package:bassic/Helpers/songs_count.dart' as songs_count;
+import 'package:bassic/Screens/Library/show_songs.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
+
+class AlbumsTab extends StatefulWidget {
+  final Map<String, List> albums;
+  final List sortedAlbumKeysList;
+  // final String? tempPath;
+  final String type;
+  final bool offline;
+  final String? playlistName;
+  const AlbumsTab({
+    super.key,
+    required this.albums,
+    required this.offline,
+    required this.sortedAlbumKeysList,
+    required this.type,
+    this.playlistName,
+    // this.tempPath,
+  });
+
+  @override
+  State<AlbumsTab> createState() => _AlbumsTabState();
+}
+
 // import 'package:path_provider/path_provider.dart';
 
 class LikedSongs extends StatefulWidget {
@@ -33,6 +55,113 @@ class LikedSongs extends StatefulWidget {
   });
   @override
   _LikedSongsState createState() => _LikedSongsState();
+}
+
+class SongsTab extends StatefulWidget {
+  final List songs;
+  final String playlistName;
+  final Function(Map item) onDelete;
+  final ScrollController scrollController;
+  const SongsTab({
+    super.key,
+    required this.songs,
+    required this.onDelete,
+    required this.playlistName,
+    required this.scrollController,
+  });
+
+  @override
+  State<SongsTab> createState() => _SongsTabState();
+}
+
+class _AlbumsTabState extends State<AlbumsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.sortedAlbumKeysList.isEmpty
+        ? emptyScreen(
+            context,
+            3,
+            AppLocalizations.of(context)!.nothingTo,
+            15.0,
+            AppLocalizations.of(context)!.showHere,
+            50,
+            AppLocalizations.of(context)!.addSomething,
+            23.0,
+          )
+        : ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 10.0),
+            shrinkWrap: true,
+            itemExtent: 70.0,
+            itemCount: widget.sortedAlbumKeysList.length,
+            itemBuilder: (context, index) {
+              final List imageList = widget
+                          .albums[widget.sortedAlbumKeysList[index]]!.length >=
+                      4
+                  ? widget.albums[widget.sortedAlbumKeysList[index]]!
+                      .sublist(0, 4)
+                  : widget.albums[widget.sortedAlbumKeysList[index]]!.sublist(
+                      0,
+                      widget.albums[widget.sortedAlbumKeysList[index]]!.length,
+                    );
+              return ListTile(
+                leading: (widget.offline)
+                    ? OfflineCollage(
+                        imageList: imageList,
+                        showGrid: widget.type == 'genre',
+                        placeholderImage: widget.type == 'artist'
+                            ? 'assets/artist.png'
+                            : 'assets/album.png',
+                      )
+                    : Collage(
+                        imageList: imageList,
+                        showGrid: widget.type == 'genre',
+                        placeholderImage: widget.type == 'artist'
+                            ? 'assets/artist.png'
+                            : 'assets/album.png',
+                      ),
+                title: Text(
+                  '${widget.sortedAlbumKeysList[index]}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  widget.albums[widget.sortedAlbumKeysList[index]]!.length == 1
+                      ? '${widget.albums[widget.sortedAlbumKeysList[index]]!.length} ${AppLocalizations.of(context)!.song}'
+                      : '${widget.albums[widget.sortedAlbumKeysList[index]]!.length} ${AppLocalizations.of(context)!.songs}',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.caption!.color,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      opaque: false,
+                      pageBuilder: (_, __, ___) => widget.offline
+                          ? SongsList(
+                              data: widget
+                                  .albums[widget.sortedAlbumKeysList[index]]!,
+                              offline: widget.offline,
+                            )
+                          : LikedSongs(
+                              playlistName: widget.playlistName!,
+                              fromPlaylist: true,
+                              showName:
+                                  widget.sortedAlbumKeysList[index].toString(),
+                              songs: widget
+                                  .albums[widget.sortedAlbumKeysList[index]],
+                            ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+  }
 }
 
 class _LikedSongsState extends State<LikedSongs>
@@ -56,245 +185,6 @@ class _LikedSongsState extends State<LikedSongs>
       Hive.box('settings').get('albumSortValue', defaultValue: 2) as int;
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<bool> _showShuffle = ValueNotifier<bool>(true);
-
-  Future<void> main() async {
-    WidgetsFlutterBinding.ensureInitialized();
-  }
-
-  @override
-  void initState() {
-    _tcontroller = TabController(length: 4, vsync: this);
-    _scrollController.addListener(() {
-      if (_scrollController.position.userScrollDirection ==
-          ScrollDirection.reverse) {
-        _showShuffle.value = false;
-      } else {
-        _showShuffle.value = true;
-      }
-    });
-    // if (tempPath == null) {
-    //   getTemporaryDirectory().then((value) {
-    //     Hive.box('settings').put('tempDirPath', value.path);
-    //   });
-    // }
-    // _tcontroller!.addListener(changeTitle);
-    getLiked();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _tcontroller!.dispose();
-    _scrollController.dispose();
-  }
-
-  // void changeTitle() {
-  //   setState(() {
-  //     currentIndex = _tcontroller!.index;
-  //   });
-  // }
-
-  void getLiked() {
-    likedBox = Hive.box(widget.playlistName);
-    if (widget.fromPlaylist) {
-      _songs = widget.songs!;
-    } else {
-      _songs = likedBox?.values.toList() ?? [];
-      songs_count.addSongsCount(
-        widget.playlistName,
-        _songs.length,
-        _songs.length >= 4
-            ? _songs.sublist(0, 4)
-            : _songs.sublist(0, _songs.length),
-      );
-    }
-    setArtistAlbum();
-  }
-
-  void setArtistAlbum() {
-    for (final element in _songs) {
-      if (_albums.containsKey(element['album'])) {
-        final List<Map> tempAlbum = _albums[element['album']]!;
-        tempAlbum.add(element as Map);
-        _albums.addEntries([MapEntry(element['album'].toString(), tempAlbum)]);
-      } else {
-        _albums.addEntries([
-          MapEntry(element['album'].toString(), [element as Map])
-        ]);
-      }
-
-      if (_artists.containsKey(element['artist'])) {
-        final List<Map> tempArtist = _artists[element['artist']]!;
-        tempArtist.add(element);
-        _artists
-            .addEntries([MapEntry(element['artist'].toString(), tempArtist)]);
-      } else {
-        _artists.addEntries([
-          MapEntry(element['artist'].toString(), [element])
-        ]);
-      }
-
-      if (_genres.containsKey(element['genre'])) {
-        final List<Map> tempGenre = _genres[element['genre']]!;
-        tempGenre.add(element);
-        _genres.addEntries([MapEntry(element['genre'].toString(), tempGenre)]);
-      } else {
-        _genres.addEntries([
-          MapEntry(element['genre'].toString(), [element])
-        ]);
-      }
-    }
-
-    sortSongs(sortVal: sortValue, order: orderValue);
-
-    _sortedAlbumKeysList = _albums.keys.toList();
-    _sortedArtistKeysList = _artists.keys.toList();
-    _sortedGenreKeysList = _genres.keys.toList();
-
-    sortAlbums();
-
-    added = true;
-    setState(() {});
-  }
-
-  void sortSongs({required int sortVal, required int order}) {
-    switch (sortVal) {
-      case 0:
-        _songs.sort(
-          (a, b) => a['title']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['title'].toString().toUpperCase()),
-        );
-        break;
-      case 1:
-        _songs.sort(
-          (a, b) => a['dateAdded']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['dateAdded'].toString().toUpperCase()),
-        );
-        break;
-      case 2:
-        _songs.sort(
-          (a, b) => a['album']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['album'].toString().toUpperCase()),
-        );
-        break;
-      case 3:
-        _songs.sort(
-          (a, b) => a['artist']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['artist'].toString().toUpperCase()),
-        );
-        break;
-      case 4:
-        _songs.sort(
-          (a, b) => a['duration']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['duration'].toString().toUpperCase()),
-        );
-        break;
-      default:
-        _songs.sort(
-          (b, a) => a['dateAdded']
-              .toString()
-              .toUpperCase()
-              .compareTo(b['dateAdded'].toString().toUpperCase()),
-        );
-        break;
-    }
-
-    if (order == 1) {
-      _songs = _songs.reversed.toList();
-    }
-  }
-
-  void sortAlbums() {
-    if (albumSortValue == 0) {
-      _sortedAlbumKeysList.sort(
-        (a, b) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedArtistKeysList.sort(
-        (a, b) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedGenreKeysList.sort(
-        (a, b) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-    }
-    if (albumSortValue == 1) {
-      _sortedAlbumKeysList.sort(
-        (b, a) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedArtistKeysList.sort(
-        (b, a) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedGenreKeysList.sort(
-        (b, a) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-    }
-    if (albumSortValue == 2) {
-      _sortedAlbumKeysList
-          .sort((b, a) => _albums[a]!.length.compareTo(_albums[b]!.length));
-      _sortedArtistKeysList
-          .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
-      _sortedGenreKeysList
-          .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
-    }
-    if (albumSortValue == 3) {
-      _sortedAlbumKeysList
-          .sort((a, b) => _albums[a]!.length.compareTo(_albums[b]!.length));
-      _sortedArtistKeysList
-          .sort((a, b) => _artists[a]!.length.compareTo(_artists[b]!.length));
-      _sortedGenreKeysList
-          .sort((a, b) => _genres[a]!.length.compareTo(_genres[b]!.length));
-    }
-    if (albumSortValue == 4) {
-      _sortedAlbumKeysList.shuffle();
-      _sortedArtistKeysList.shuffle();
-      _sortedGenreKeysList.shuffle();
-    }
-  }
-
-  void deleteLiked(Map song) {
-    setState(() {
-      likedBox!.delete(song['id']);
-      if (_albums[song['album']]!.length == 1) {
-        _sortedAlbumKeysList.remove(song['album']);
-      }
-      _albums[song['album']]!.remove(song);
-
-      if (_artists[song['artist']]!.length == 1) {
-        _sortedArtistKeysList.remove(song['artist']);
-      }
-      _artists[song['artist']]!.remove(song);
-
-      if (_genres[song['genre']]!.length == 1) {
-        _sortedGenreKeysList.remove(song['genre']);
-      }
-      _genres[song['genre']]!.remove(song);
-
-      _songs.remove(song);
-      songs_count.addSongsCount(
-        widget.playlistName,
-        _songs.length,
-        _songs.length >= 4
-            ? _songs.sublist(0, 4)
-            : _songs.sublist(0, _songs.length),
-      );
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -583,23 +473,245 @@ class _LikedSongsState extends State<LikedSongs>
       ),
     );
   }
-}
 
-class SongsTab extends StatefulWidget {
-  final List songs;
-  final String playlistName;
-  final Function(Map item) onDelete;
-  final ScrollController scrollController;
-  const SongsTab({
-    super.key,
-    required this.songs,
-    required this.onDelete,
-    required this.playlistName,
-    required this.scrollController,
-  });
+  void deleteLiked(Map song) {
+    setState(() {
+      likedBox!.delete(song['id']);
+      if (_albums[song['album']]!.length == 1) {
+        _sortedAlbumKeysList.remove(song['album']);
+      }
+      _albums[song['album']]!.remove(song);
+
+      if (_artists[song['artist']]!.length == 1) {
+        _sortedArtistKeysList.remove(song['artist']);
+      }
+      _artists[song['artist']]!.remove(song);
+
+      if (_genres[song['genre']]!.length == 1) {
+        _sortedGenreKeysList.remove(song['genre']);
+      }
+      _genres[song['genre']]!.remove(song);
+
+      _songs.remove(song);
+      songs_count.addSongsCount(
+        widget.playlistName,
+        _songs.length,
+        _songs.length >= 4
+            ? _songs.sublist(0, 4)
+            : _songs.sublist(0, _songs.length),
+      );
+    });
+  }
 
   @override
-  State<SongsTab> createState() => _SongsTabState();
+  void dispose() {
+    super.dispose();
+    _tcontroller!.dispose();
+    _scrollController.dispose();
+  }
+
+  // void changeTitle() {
+  //   setState(() {
+  //     currentIndex = _tcontroller!.index;
+  //   });
+  // }
+
+  void getLiked() {
+    likedBox = Hive.box(widget.playlistName);
+    if (widget.fromPlaylist) {
+      _songs = widget.songs!;
+    } else {
+      _songs = likedBox?.values.toList() ?? [];
+      songs_count.addSongsCount(
+        widget.playlistName,
+        _songs.length,
+        _songs.length >= 4
+            ? _songs.sublist(0, 4)
+            : _songs.sublist(0, _songs.length),
+      );
+    }
+    setArtistAlbum();
+  }
+
+  @override
+  void initState() {
+    _tcontroller = TabController(length: 4, vsync: this);
+    _scrollController.addListener(() {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        _showShuffle.value = false;
+      } else {
+        _showShuffle.value = true;
+      }
+    });
+    // if (tempPath == null) {
+    //   getTemporaryDirectory().then((value) {
+    //     Hive.box('settings').put('tempDirPath', value.path);
+    //   });
+    // }
+    // _tcontroller!.addListener(changeTitle);
+    getLiked();
+    super.initState();
+  }
+
+  Future<void> main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+  }
+
+  void setArtistAlbum() {
+    for (final element in _songs) {
+      if (_albums.containsKey(element['album'])) {
+        final List<Map> tempAlbum = _albums[element['album']]!;
+        tempAlbum.add(element as Map);
+        _albums.addEntries([MapEntry(element['album'].toString(), tempAlbum)]);
+      } else {
+        _albums.addEntries([
+          MapEntry(element['album'].toString(), [element as Map])
+        ]);
+      }
+
+      if (_artists.containsKey(element['artist'])) {
+        final List<Map> tempArtist = _artists[element['artist']]!;
+        tempArtist.add(element);
+        _artists
+            .addEntries([MapEntry(element['artist'].toString(), tempArtist)]);
+      } else {
+        _artists.addEntries([
+          MapEntry(element['artist'].toString(), [element])
+        ]);
+      }
+
+      if (_genres.containsKey(element['genre'])) {
+        final List<Map> tempGenre = _genres[element['genre']]!;
+        tempGenre.add(element);
+        _genres.addEntries([MapEntry(element['genre'].toString(), tempGenre)]);
+      } else {
+        _genres.addEntries([
+          MapEntry(element['genre'].toString(), [element])
+        ]);
+      }
+    }
+
+    sortSongs(sortVal: sortValue, order: orderValue);
+
+    _sortedAlbumKeysList = _albums.keys.toList();
+    _sortedArtistKeysList = _artists.keys.toList();
+    _sortedGenreKeysList = _genres.keys.toList();
+
+    sortAlbums();
+
+    added = true;
+    setState(() {});
+  }
+
+  void sortAlbums() {
+    if (albumSortValue == 0) {
+      _sortedAlbumKeysList.sort(
+        (a, b) =>
+            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+      );
+      _sortedArtistKeysList.sort(
+        (a, b) =>
+            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+      );
+      _sortedGenreKeysList.sort(
+        (a, b) =>
+            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+      );
+    }
+    if (albumSortValue == 1) {
+      _sortedAlbumKeysList.sort(
+        (b, a) =>
+            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+      );
+      _sortedArtistKeysList.sort(
+        (b, a) =>
+            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+      );
+      _sortedGenreKeysList.sort(
+        (b, a) =>
+            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+      );
+    }
+    if (albumSortValue == 2) {
+      _sortedAlbumKeysList
+          .sort((b, a) => _albums[a]!.length.compareTo(_albums[b]!.length));
+      _sortedArtistKeysList
+          .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
+      _sortedGenreKeysList
+          .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
+    }
+    if (albumSortValue == 3) {
+      _sortedAlbumKeysList
+          .sort((a, b) => _albums[a]!.length.compareTo(_albums[b]!.length));
+      _sortedArtistKeysList
+          .sort((a, b) => _artists[a]!.length.compareTo(_artists[b]!.length));
+      _sortedGenreKeysList
+          .sort((a, b) => _genres[a]!.length.compareTo(_genres[b]!.length));
+    }
+    if (albumSortValue == 4) {
+      _sortedAlbumKeysList.shuffle();
+      _sortedArtistKeysList.shuffle();
+      _sortedGenreKeysList.shuffle();
+    }
+  }
+
+  void sortSongs({required int sortVal, required int order}) {
+    switch (sortVal) {
+      case 0:
+        _songs.sort(
+          (a, b) => a['title']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['title'].toString().toUpperCase()),
+        );
+        break;
+      case 1:
+        _songs.sort(
+          (a, b) => a['dateAdded']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['dateAdded'].toString().toUpperCase()),
+        );
+        break;
+      case 2:
+        _songs.sort(
+          (a, b) => a['album']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['album'].toString().toUpperCase()),
+        );
+        break;
+      case 3:
+        _songs.sort(
+          (a, b) => a['artist']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['artist'].toString().toUpperCase()),
+        );
+        break;
+      case 4:
+        _songs.sort(
+          (a, b) => a['duration']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['duration'].toString().toUpperCase()),
+        );
+        break;
+      default:
+        _songs.sort(
+          (b, a) => a['dateAdded']
+              .toString()
+              .toUpperCase()
+              .compareTo(b['dateAdded'].toString().toUpperCase()),
+        );
+        break;
+    }
+
+    if (order == 1) {
+      _songs = _songs.reversed.toList();
+    }
+  }
 }
 
 class _SongsTabState extends State<SongsTab>
@@ -713,117 +825,6 @@ class _SongsTabState extends State<SongsTab>
                 ),
               ),
             ],
-          );
-  }
-}
-
-class AlbumsTab extends StatefulWidget {
-  final Map<String, List> albums;
-  final List sortedAlbumKeysList;
-  // final String? tempPath;
-  final String type;
-  final bool offline;
-  final String? playlistName;
-  const AlbumsTab({
-    super.key,
-    required this.albums,
-    required this.offline,
-    required this.sortedAlbumKeysList,
-    required this.type,
-    this.playlistName,
-    // this.tempPath,
-  });
-
-  @override
-  State<AlbumsTab> createState() => _AlbumsTabState();
-}
-
-class _AlbumsTabState extends State<AlbumsTab>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.sortedAlbumKeysList.isEmpty
-        ? emptyScreen(
-            context,
-            3,
-            AppLocalizations.of(context)!.nothingTo,
-            15.0,
-            AppLocalizations.of(context)!.showHere,
-            50,
-            AppLocalizations.of(context)!.addSomething,
-            23.0,
-          )
-        : ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 10.0),
-            shrinkWrap: true,
-            itemExtent: 70.0,
-            itemCount: widget.sortedAlbumKeysList.length,
-            itemBuilder: (context, index) {
-              final List imageList = widget
-                          .albums[widget.sortedAlbumKeysList[index]]!.length >=
-                      4
-                  ? widget.albums[widget.sortedAlbumKeysList[index]]!
-                      .sublist(0, 4)
-                  : widget.albums[widget.sortedAlbumKeysList[index]]!.sublist(
-                      0,
-                      widget.albums[widget.sortedAlbumKeysList[index]]!.length,
-                    );
-              return ListTile(
-                leading: (widget.offline)
-                    ? OfflineCollage(
-                        imageList: imageList,
-                        showGrid: widget.type == 'genre',
-                        placeholderImage: widget.type == 'artist'
-                            ? 'assets/artist.png'
-                            : 'assets/album.png',
-                      )
-                    : Collage(
-                        imageList: imageList,
-                        showGrid: widget.type == 'genre',
-                        placeholderImage: widget.type == 'artist'
-                            ? 'assets/artist.png'
-                            : 'assets/album.png',
-                      ),
-                title: Text(
-                  '${widget.sortedAlbumKeysList[index]}',
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  widget.albums[widget.sortedAlbumKeysList[index]]!.length == 1
-                      ? '${widget.albums[widget.sortedAlbumKeysList[index]]!.length} ${AppLocalizations.of(context)!.song}'
-                      : '${widget.albums[widget.sortedAlbumKeysList[index]]!.length} ${AppLocalizations.of(context)!.songs}',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.caption!.color,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      opaque: false,
-                      pageBuilder: (_, __, ___) => widget.offline
-                          ? SongsList(
-                              data: widget
-                                  .albums[widget.sortedAlbumKeysList[index]]!,
-                              offline: widget.offline,
-                            )
-                          : LikedSongs(
-                              playlistName: widget.playlistName!,
-                              fromPlaylist: true,
-                              showName:
-                                  widget.sortedAlbumKeysList[index].toString(),
-                              songs: widget
-                                  .albums[widget.sortedAlbumKeysList[index]],
-                            ),
-                    ),
-                  );
-                },
-              );
-            },
           );
   }
 }

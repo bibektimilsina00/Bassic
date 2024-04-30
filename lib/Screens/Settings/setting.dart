@@ -1,20 +1,20 @@
 import 'dart:io';
 
-import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/popup.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/textinput_dialog.dart';
-import 'package:blackhole/Helpers/backup_restore.dart';
-import 'package:blackhole/Helpers/config.dart';
-// import 'package:blackhole/Helpers/countrycodes.dart';
-import 'package:blackhole/Helpers/picker.dart';
-import 'package:blackhole/Helpers/supabase.dart';
-import 'package:blackhole/Screens/Home/saavn.dart' as home_screen;
-import 'package:blackhole/Screens/Settings/player_gradient.dart';
-// import 'package:blackhole/Screens/Top Charts/top.dart' as top_screen;
-import 'package:blackhole/Services/ext_storage_provider.dart';
-import 'package:blackhole/main.dart';
+import 'package:bassic/CustomWidgets/copy_clipboard.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/popup.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/CustomWidgets/textinput_dialog.dart';
+import 'package:bassic/Helpers/backup_restore.dart';
+import 'package:bassic/Helpers/config.dart';
+// import 'package:bassic/Helpers/countrycodes.dart';
+import 'package:bassic/Helpers/picker.dart';
+import 'package:bassic/Helpers/supabase.dart';
+import 'package:bassic/Screens/Home/saavn.dart' as home_screen;
+import 'package:bassic/Screens/Settings/player_gradient.dart';
+// import 'package:bassic/Screens/Top Charts/top.dart' as top_screen;
+import 'package:bassic/Services/ext_storage_provider.dart';
+import 'package:bassic/main.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +25,47 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class BoxSwitchTile extends StatelessWidget {
+  final Text title;
+
+  final Text? subtitle;
+  final String keyName;
+  final bool defaultValue;
+  final bool? isThreeLine;
+  final Function(bool, Box box)? onChanged;
+  const BoxSwitchTile({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.keyName,
+    required this.defaultValue,
+    this.isThreeLine,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('settings').listenable(),
+      builder: (BuildContext context, Box box, Widget? widget) {
+        return SwitchListTile(
+          activeColor: Theme.of(context).colorScheme.secondary,
+          title: title,
+          subtitle: subtitle,
+          isThreeLine: isThreeLine ?? false,
+          dense: true,
+          value: box.get(keyName, defaultValue: defaultValue) as bool? ??
+              defaultValue,
+          onChanged: (val) {
+            box.put(keyName, val);
+            onChanged?.call(val, box);
+          },
+        );
+      },
+    );
+  }
+}
 
 class SettingPage extends StatefulWidget {
   final Function? callback;
@@ -41,7 +82,7 @@ class _SettingPageState extends State<SettingPage> {
       .get('downloadPath', defaultValue: '/storage/emulated/0/Music') as String;
   String autoBackPath = Hive.box('settings').get(
     'autoBackPath',
-    defaultValue: '/storage/emulated/0/BlackHole/Backups',
+    defaultValue: '/storage/emulated/0/Bassic/Backups',
   ) as String;
   final ValueNotifier<bool> includeOrExclude = ValueNotifier<bool>(
     Hive.box('settings').get('includeOrExclude', defaultValue: false) as bool,
@@ -105,39 +146,6 @@ class _SettingPageState extends State<SettingPage> {
     'preferredMiniButtons',
     defaultValue: ['Like', 'Play/Pause', 'Next'],
   )?.toList() as List;
-
-  @override
-  void initState() {
-    main();
-    super.initState();
-  }
-
-  Future<void> main() async {
-    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    appVersion = packageInfo.version;
-    setState(
-      () {},
-    );
-  }
-
-  bool compareVersion(String latestVersion, String currentVersion) {
-    bool update = false;
-    final List<String> latestList = latestVersion.split('.');
-    final List<String> currentList = currentVersion.split('.');
-
-    for (int i = 0; i < latestList.length; i++) {
-      try {
-        if (int.parse(latestList[i]) > int.parse(currentList[i])) {
-          update = true;
-          break;
-        }
-      } catch (e) {
-        break;
-      }
-    }
-
-    return update;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -3408,9 +3416,9 @@ class _SettingPageState extends State<SettingPage> {
                             onPressed: () async {
                               autoBackPath =
                                   await ExtStorageProvider.getExtStorage(
-                                        dirName: 'BlackHole/Backups',
+                                        dirName: 'Bassic/Backups',
                                       ) ??
-                                      '/storage/emulated/0/BlackHole/Backups';
+                                      '/storage/emulated/0/Bassic/Backups';
                               Hive.box('settings')
                                   .put('autoBackPath', autoBackPath);
                               setState(
@@ -3603,7 +3611,7 @@ class _SettingPageState extends State<SettingPage> {
                             Share.share(
                               '${AppLocalizations.of(
                                 context,
-                              )!.shareAppText}: https://github.com/StarsWarrior/BlackHole',
+                              )!.shareAppText}: https://github.com/StarsWarrior/Bassic',
                             );
                           },
                           dense: true,
@@ -3733,7 +3741,7 @@ class _SettingPageState extends State<SettingPage> {
                                                 Navigator.pop(context);
                                                 launchUrl(
                                                   Uri.parse(
-                                                    'https://mail.google.com/mail/?extsrc=mailto&url=mailto%3A%3Fto%3Dblackholeyoucantescape%40gmail.com%26subject%3DRegarding%2520Mobile%2520App',
+                                                    'https://mail.google.com/mail/?extsrc=mailto&url=mailto%3A%3Fto%3DBassicyoucantescape%40gmail.com%26subject%3DRegarding%2520Mobile%2520App',
                                                   ),
                                                   mode: LaunchMode
                                                       .externalApplication,
@@ -3889,7 +3897,7 @@ class _SettingPageState extends State<SettingPage> {
                                                 Navigator.pop(context);
                                                 launchUrl(
                                                   Uri.parse(
-                                                    'https://t.me/blackholebd',
+                                                    'https://t.me/Bassicbd',
                                                   ),
                                                   mode: LaunchMode
                                                       .externalApplication,
@@ -3954,6 +3962,39 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
+  bool compareVersion(String latestVersion, String currentVersion) {
+    bool update = false;
+    final List<String> latestList = latestVersion.split('.');
+    final List<String> currentList = currentVersion.split('.');
+
+    for (int i = 0; i < latestList.length; i++) {
+      try {
+        if (int.parse(latestList[i]) > int.parse(currentList[i])) {
+          update = true;
+          break;
+        }
+      } catch (e) {
+        break;
+      }
+    }
+
+    return update;
+  }
+
+  @override
+  void initState() {
+    main();
+    super.initState();
+  }
+
+  Future<void> main() async {
+    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    appVersion = packageInfo.version;
+    setState(
+      () {},
+    );
+  }
+
   void switchToCustomTheme() {
     const custom = 'Custom';
     if (theme != custom) {
@@ -3964,47 +4005,6 @@ class _SettingPageState extends State<SettingPage> {
         },
       );
     }
-  }
-}
-
-class BoxSwitchTile extends StatelessWidget {
-  const BoxSwitchTile({
-    super.key,
-    required this.title,
-    this.subtitle,
-    required this.keyName,
-    required this.defaultValue,
-    this.isThreeLine,
-    this.onChanged,
-  });
-
-  final Text title;
-  final Text? subtitle;
-  final String keyName;
-  final bool defaultValue;
-  final bool? isThreeLine;
-  final Function(bool, Box box)? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(),
-      builder: (BuildContext context, Box box, Widget? widget) {
-        return SwitchListTile(
-          activeColor: Theme.of(context).colorScheme.secondary,
-          title: title,
-          subtitle: subtitle,
-          isThreeLine: isThreeLine ?? false,
-          dense: true,
-          value: box.get(keyName, defaultValue: defaultValue) as bool? ??
-              defaultValue,
-          onChanged: (val) {
-            box.put(keyName, val);
-            onChanged?.call(val, box);
-          },
-        );
-      },
-    );
   }
 }
 

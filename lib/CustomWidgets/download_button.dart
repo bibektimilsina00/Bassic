@@ -1,9 +1,22 @@
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/Services/download.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/Services/download.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
+
+class AlbumDownloadButton extends StatefulWidget {
+  final String albumId;
+  final String albumName;
+  const AlbumDownloadButton({
+    super.key,
+    required this.albumId,
+    required this.albumName,
+  });
+
+  @override
+  _AlbumDownloadButtonState createState() => _AlbumDownloadButtonState();
+}
 
 class DownloadButton extends StatefulWidget {
   final Map data;
@@ -20,10 +33,106 @@ class DownloadButton extends StatefulWidget {
   _DownloadButtonState createState() => _DownloadButtonState();
 }
 
-class _DownloadButtonState extends State<DownloadButton> {
+class MultiDownloadButton extends StatefulWidget {
+  final List data;
+  final String playlistName;
+  const MultiDownloadButton({
+    super.key,
+    required this.data,
+    required this.playlistName,
+  });
+
+  @override
+  _MultiDownloadButtonState createState() => _MultiDownloadButtonState();
+}
+
+class _AlbumDownloadButtonState extends State<AlbumDownloadButton> {
   Download down = Download();
-  final Box downloadsBox = Hive.box('downloads');
-  final ValueNotifier<bool> showStopButton = ValueNotifier<bool>(false);
+  int done = 0;
+  List data = [];
+  bool finished = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 50,
+      height: 50,
+      child: Center(
+        child: finished
+            ? IconButton(
+                icon: const Icon(
+                  Icons.download_done_rounded,
+                ),
+                color: Theme.of(context).colorScheme.secondary,
+                iconSize: 25.0,
+                tooltip: AppLocalizations.of(context)!.downDone,
+                onPressed: () {},
+              )
+            : down.progress == 0
+                ? Center(
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.download_rounded,
+                      ),
+                      iconSize: 25.0,
+                      color: Theme.of(context).iconTheme.color,
+                      tooltip: AppLocalizations.of(context)!.down,
+                      onPressed: () async {
+                        ShowSnackBar().showSnackBar(
+                          context,
+                          '${AppLocalizations.of(context)!.downingAlbum} "${widget.albumName}"',
+                        );
+
+                        data = (await SaavnAPI()
+                            .fetchAlbumSongs(widget.albumId))['songs'] as List;
+                        for (final items in data) {
+                          down.prepareDownload(
+                            context,
+                            items as Map,
+                            createFolder: true,
+                            folderName: widget.albumName,
+                          );
+                          await _waitUntilDone(items['id'].toString());
+                          setState(() {
+                            done++;
+                          });
+                        }
+                        finished = true;
+                      },
+                    ),
+                  )
+                : Stack(
+                    children: [
+                      Center(
+                        child: Text(
+                          down.progress == null
+                              ? '0%'
+                              : '${(100 * down.progress!).round()}%',
+                        ),
+                      ),
+                      Center(
+                        child: SizedBox(
+                          height: 35,
+                          width: 35,
+                          child: CircularProgressIndicator(
+                            value: down.progress == 1 ? null : down.progress,
+                          ),
+                        ),
+                      ),
+                      Center(
+                        child: SizedBox(
+                          height: 30,
+                          width: 30,
+                          child: CircularProgressIndicator(
+                            value: data.isEmpty ? 0 : done / data.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -32,6 +141,19 @@ class _DownloadButtonState extends State<DownloadButton> {
       setState(() {});
     });
   }
+
+  Future<void> _waitUntilDone(String id) async {
+    while (down.lastDownloadId != id) {
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    return;
+  }
+}
+
+class _DownloadButtonState extends State<DownloadButton> {
+  Download down = Download();
+  final Box downloadsBox = Hive.box('downloads');
+  final ValueNotifier<bool> showStopButton = ValueNotifier<bool>(false);
 
   @override
   Widget build(BuildContext context) {
@@ -131,24 +253,6 @@ class _DownloadButtonState extends State<DownloadButton> {
       ),
     );
   }
-}
-
-class MultiDownloadButton extends StatefulWidget {
-  final List data;
-  final String playlistName;
-  const MultiDownloadButton({
-    super.key,
-    required this.data,
-    required this.playlistName,
-  });
-
-  @override
-  _MultiDownloadButtonState createState() => _MultiDownloadButtonState();
-}
-
-class _MultiDownloadButtonState extends State<MultiDownloadButton> {
-  Download down = Download();
-  int done = 0;
 
   @override
   void initState() {
@@ -157,13 +261,11 @@ class _MultiDownloadButtonState extends State<MultiDownloadButton> {
       setState(() {});
     });
   }
+}
 
-  Future<void> _waitUntilDone(String id) async {
-    while (down.lastDownloadId != id) {
-      await Future.delayed(const Duration(seconds: 1));
-    }
-    return;
-  }
+class _MultiDownloadButtonState extends State<MultiDownloadButton> {
+  Download down = Download();
+  int done = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -240,26 +342,6 @@ class _MultiDownloadButtonState extends State<MultiDownloadButton> {
       ),
     );
   }
-}
-
-class AlbumDownloadButton extends StatefulWidget {
-  final String albumId;
-  final String albumName;
-  const AlbumDownloadButton({
-    super.key,
-    required this.albumId,
-    required this.albumName,
-  });
-
-  @override
-  _AlbumDownloadButtonState createState() => _AlbumDownloadButtonState();
-}
-
-class _AlbumDownloadButtonState extends State<AlbumDownloadButton> {
-  Download down = Download();
-  int done = 0;
-  List data = [];
-  bool finished = false;
 
   @override
   void initState() {
@@ -274,87 +356,5 @@ class _AlbumDownloadButtonState extends State<AlbumDownloadButton> {
       await Future.delayed(const Duration(seconds: 1));
     }
     return;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 50,
-      height: 50,
-      child: Center(
-        child: finished
-            ? IconButton(
-                icon: const Icon(
-                  Icons.download_done_rounded,
-                ),
-                color: Theme.of(context).colorScheme.secondary,
-                iconSize: 25.0,
-                tooltip: AppLocalizations.of(context)!.downDone,
-                onPressed: () {},
-              )
-            : down.progress == 0
-                ? Center(
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.download_rounded,
-                      ),
-                      iconSize: 25.0,
-                      color: Theme.of(context).iconTheme.color,
-                      tooltip: AppLocalizations.of(context)!.down,
-                      onPressed: () async {
-                        ShowSnackBar().showSnackBar(
-                          context,
-                          '${AppLocalizations.of(context)!.downingAlbum} "${widget.albumName}"',
-                        );
-
-                        data = (await SaavnAPI()
-                            .fetchAlbumSongs(widget.albumId))['songs'] as List;
-                        for (final items in data) {
-                          down.prepareDownload(
-                            context,
-                            items as Map,
-                            createFolder: true,
-                            folderName: widget.albumName,
-                          );
-                          await _waitUntilDone(items['id'].toString());
-                          setState(() {
-                            done++;
-                          });
-                        }
-                        finished = true;
-                      },
-                    ),
-                  )
-                : Stack(
-                    children: [
-                      Center(
-                        child: Text(
-                          down.progress == null
-                              ? '0%'
-                              : '${(100 * down.progress!).round()}%',
-                        ),
-                      ),
-                      Center(
-                        child: SizedBox(
-                          height: 35,
-                          width: 35,
-                          child: CircularProgressIndicator(
-                            value: down.progress == 1 ? null : down.progress,
-                          ),
-                        ),
-                      ),
-                      Center(
-                        child: SizedBox(
-                          height: 30,
-                          width: 30,
-                          child: CircularProgressIndicator(
-                            value: data.isEmpty ? 0 : done / data.length,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-      ),
-    );
   }
 }

@@ -1,7 +1,7 @@
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/textinput_dialog.dart';
-import 'package:blackhole/Helpers/audio_query.dart';
-import 'package:blackhole/Screens/LocalMusic/downed_songs.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/CustomWidgets/textinput_dialog.dart';
+import 'package:bassic/Helpers/audio_query.dart';
+import 'package:bassic/Screens/LocalMusic/downed_songs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:on_audio_query/on_audio_query.dart';

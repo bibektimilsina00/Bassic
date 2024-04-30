@@ -1,14 +1,14 @@
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/CustomWidgets/bouncy_sliver_scroll_view.dart';
-import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
-import 'package:blackhole/CustomWidgets/download_button.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/like_button.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/playlist_popupmenu.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/song_tile_trailing_menu.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/CustomWidgets/bouncy_sliver_scroll_view.dart';
+import 'package:bassic/CustomWidgets/copy_clipboard.dart';
+import 'package:bassic/CustomWidgets/download_button.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/like_button.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/CustomWidgets/playlist_popupmenu.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/CustomWidgets/song_tile_trailing_menu.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -34,101 +34,6 @@ class _SongsListPageState extends State<SongsListPage> {
   bool fetched = false;
   HtmlUnescape unescape = HtmlUnescape();
   final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchSongs();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent &&
-          widget.listItem['type'].toString() == 'songs' &&
-          !loading) {
-        page += 1;
-        _fetchSongs();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _scrollController.dispose();
-  }
-
-  void _fetchSongs() {
-    loading = true;
-    switch (widget.listItem['type'].toString()) {
-      case 'songs':
-        SaavnAPI()
-            .fetchSongSearchResults(
-          searchQuery: widget.listItem['id'].toString(),
-          page: page,
-        )
-            .then((value) {
-          setState(() {
-            songList.addAll(value['songs'] as List);
-            fetched = true;
-            loading = false;
-          });
-          if (value['error'].toString() != '') {
-            ShowSnackBar().showSnackBar(
-              context,
-              'Error: ${value["error"]}',
-              duration: const Duration(seconds: 3),
-            );
-          }
-        });
-        break;
-      case 'album':
-        SaavnAPI()
-            .fetchAlbumSongs(widget.listItem['id'].toString())
-            .then((value) {
-          setState(() {
-            songList = value['songs'] as List;
-            fetched = true;
-            loading = false;
-          });
-          if (value['error'].toString() != '') {
-            ShowSnackBar().showSnackBar(
-              context,
-              'Error: ${value["error"]}',
-              duration: const Duration(seconds: 3),
-            );
-          }
-        });
-        break;
-      case 'playlist':
-        SaavnAPI()
-            .fetchPlaylistSongs(widget.listItem['id'].toString())
-            .then((value) {
-          setState(() {
-            songList = value['songs'] as List;
-            fetched = true;
-            loading = false;
-          });
-          if (value['error'].toString() != '') {
-            ShowSnackBar().showSnackBar(
-              context,
-              'Error: ${value["error"]}',
-              duration: const Duration(seconds: 3),
-            );
-          }
-        });
-        break;
-      default:
-        setState(() {
-          fetched = true;
-          loading = false;
-        });
-        ShowSnackBar().showSnackBar(
-          context,
-          'Error: Unsupported Type ${widget.listItem['type']}',
-          duration: const Duration(seconds: 3),
-        );
-        break;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -441,5 +346,100 @@ class _SongsListPageState extends State<SongsListPage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _scrollController.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSongs();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent &&
+          widget.listItem['type'].toString() == 'songs' &&
+          !loading) {
+        page += 1;
+        _fetchSongs();
+      }
+    });
+  }
+
+  void _fetchSongs() {
+    loading = true;
+    switch (widget.listItem['type'].toString()) {
+      case 'songs':
+        SaavnAPI()
+            .fetchSongSearchResults(
+          searchQuery: widget.listItem['id'].toString(),
+          page: page,
+        )
+            .then((value) {
+          setState(() {
+            songList.addAll(value['songs'] as List);
+            fetched = true;
+            loading = false;
+          });
+          if (value['error'].toString() != '') {
+            ShowSnackBar().showSnackBar(
+              context,
+              'Error: ${value["error"]}',
+              duration: const Duration(seconds: 3),
+            );
+          }
+        });
+        break;
+      case 'album':
+        SaavnAPI()
+            .fetchAlbumSongs(widget.listItem['id'].toString())
+            .then((value) {
+          setState(() {
+            songList = value['songs'] as List;
+            fetched = true;
+            loading = false;
+          });
+          if (value['error'].toString() != '') {
+            ShowSnackBar().showSnackBar(
+              context,
+              'Error: ${value["error"]}',
+              duration: const Duration(seconds: 3),
+            );
+          }
+        });
+        break;
+      case 'playlist':
+        SaavnAPI()
+            .fetchPlaylistSongs(widget.listItem['id'].toString())
+            .then((value) {
+          setState(() {
+            songList = value['songs'] as List;
+            fetched = true;
+            loading = false;
+          });
+          if (value['error'].toString() != '') {
+            ShowSnackBar().showSnackBar(
+              context,
+              'Error: ${value["error"]}',
+              duration: const Duration(seconds: 3),
+            );
+          }
+        });
+        break;
+      default:
+        setState(() {
+          fetched = true;
+          loading = false;
+        });
+        ShowSnackBar().showSnackBar(
+          context,
+          'Error: Unsupported Type ${widget.listItem['type']}',
+          duration: const Duration(seconds: 3),
+        );
+        break;
+    }
   }
 }

@@ -1,22 +1,37 @@
 import 'dart:developer';
 import 'dart:io';
 
-// import 'package:blackhole/CustomWidgets/add_playlist.dart';
-import 'package:blackhole/CustomWidgets/custom_physics.dart';
-// import 'package:blackhole/CustomWidgets/data_search.dart';
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/playlist_head.dart';
-// import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/Helpers/audio_query.dart';
-// import 'package:blackhole/Screens/LocalMusic/localplaylists.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+// import 'package:bassic/CustomWidgets/add_playlist.dart';
+import 'package:bassic/CustomWidgets/custom_physics.dart';
+// import 'package:bassic/CustomWidgets/data_search.dart';
+import 'package:bassic/CustomWidgets/empty_screen.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/CustomWidgets/playlist_head.dart';
+// import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/Helpers/audio_query.dart';
+// import 'package:bassic/Screens/LocalMusic/localplaylists.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 // import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
+
+class AlbumsTabDesktop extends StatefulWidget {
+  final Map<String, List<Map>> albums;
+  final List<String> albumsList;
+  final String tempPath;
+  const AlbumsTabDesktop({
+    super.key,
+    required this.albums,
+    required this.albumsList,
+    required this.tempPath,
+  });
+
+  @override
+  State<AlbumsTabDesktop> createState() => _AlbumsTabDesktopState();
+}
 
 class DownloadedSongsDesktop extends StatefulWidget {
   final List<Map>? cachedSongs;
@@ -32,6 +47,70 @@ class DownloadedSongsDesktop extends StatefulWidget {
   });
   @override
   _DownloadedSongsDesktopState createState() => _DownloadedSongsDesktopState();
+}
+
+class SongsTab extends StatefulWidget {
+  final List<Map> songs;
+  final int? playlistId;
+  final String? playlistName;
+  final String tempPath;
+  const SongsTab({
+    super.key,
+    required this.songs,
+    required this.tempPath,
+    this.playlistId,
+    this.playlistName,
+  });
+
+  @override
+  State<SongsTab> createState() => _SongsTabState();
+}
+
+class _AlbumsTabDesktopState extends State<AlbumsTabDesktop>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      shrinkWrap: true,
+      itemExtent: 70.0,
+      itemCount: widget.albumsList.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          // leading: OfflineAudioQuery.offlineArtworkWidget(
+          //   id: widget.albums[widget.albumsList[index]]![0].id,
+          //   type: ArtworkType.AUDIO,
+          //   tempPath: widget.tempPath,
+          //   fileName:
+          //       widget.albums[widget.albumsList[index]]![0].displayNameWOExt,
+          // ),
+          title: Text(
+            widget.albumsList[index],
+            overflow: TextOverflow.ellipsis,
+          ),
+          // subtitle: Text(
+          //   '${widget.albums[widget.albumsList[index]]!.length} ${AppLocalizations.of(context)!.songs}',
+          // ),
+          onTap: () {
+            //   Navigator.push(
+            //     context,
+            //     MaterialPageRoute(
+            //       builder: (context) => DownloadedSongs(
+            //         title: widget.albumsList[index],
+            //         cachedSongs: widget.albums[widget.albumsList[index]],
+            //       ),
+            //     ),
+            //   );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _DownloadedSongsDesktopState extends State<DownloadedSongsDesktop>
@@ -64,89 +143,6 @@ class _DownloadedSongsDesktopState extends State<DownloadedSongsDesktop>
   TabController? _tcontroller;
   OfflineAudioQuery offlineAudioQuery = OfflineAudioQuery();
   List<Map> playlistDetails = [];
-
-  @override
-  void initState() {
-    _tcontroller = TabController(length: 4, vsync: this);
-    getData();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _tcontroller!.dispose();
-  }
-
-  void getSongs() {
-    final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
-    for (final path in includedExcludedPaths) {
-      final dir = Directory(path.toString());
-      try {
-        final files = dir.listSync(recursive: true);
-        for (final file in files) {
-          if (file.path.endsWith('.mp3') || file.path.endsWith('.m4a')) {
-            _songs.add({
-              'id': file.path.replaceAll(avoid, '').replaceAll('  ', ' '),
-              'title':
-                  (file.path.split('\\').last.split('.')..removeLast()).join(),
-              'artist': 'Unknown',
-              'album': 'Unknown',
-              'image': '',
-              'year': '',
-              'subtitle': file.path.split('\\').last,
-              'quality': '',
-              'genre': 'Unknown',
-              'path': file.path,
-            });
-          }
-        }
-      } catch (e) {
-        log('Failed to listSync "$path"');
-      }
-    }
-  }
-
-  Future<void> getData() async {
-    // await offlineAudioQuery.requestPermission();
-    tempPath ??= (await getTemporaryDirectory()).path;
-    // playlistDetails = await offlineAudioQuery.getPlaylists();
-    if (widget.cachedSongs == null) {
-      getSongs();
-    } else {
-      _songs = widget.cachedSongs!;
-    }
-    added = true;
-    setState(() {});
-    // for (int i = 0; i < _songs.length; i++) {
-    //   if (_albums.containsKey(_songs[i].album)) {
-    //     _albums[_songs[i].album]!.add(_songs[i]);
-    //   } else {
-    //     _albums.addEntries([
-    //       MapEntry(_songs[i].album!, [_songs[i]])
-    //     ]);
-    //     _sortedAlbumKeysList.add(_songs[i].album!);
-    //   }
-
-    //   if (_artists.containsKey(_songs[i].artist)) {
-    //     _artists[_songs[i].artist]!.add(_songs[i]);
-    //   } else {
-    //     _artists.addEntries([
-    //       MapEntry(_songs[i].artist!, [_songs[i]])
-    //     ]);
-    //     _sortedArtistKeysList.add(_songs[i].artist!);
-    //   }
-
-    //   if (_genres.containsKey(_songs[i].genre)) {
-    //     _genres[_songs[i].genre]!.add(_songs[i]);
-    //   } else {
-    //     _genres.addEntries([
-    //       MapEntry(_songs[i].genre!, [_songs[i]])
-    //     ]);
-    //     _sortedGenreKeysList.add(_songs[i].genre!);
-    //   }
-    // }
-  }
 
   // Future<void> sortSongs(int sortVal, int order) async {
   //   switch (sortVal) {
@@ -393,6 +389,89 @@ class _DownloadedSongsDesktopState extends State<DownloadedSongsDesktop>
     );
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+    _tcontroller!.dispose();
+  }
+
+  Future<void> getData() async {
+    // await offlineAudioQuery.requestPermission();
+    tempPath ??= (await getTemporaryDirectory()).path;
+    // playlistDetails = await offlineAudioQuery.getPlaylists();
+    if (widget.cachedSongs == null) {
+      getSongs();
+    } else {
+      _songs = widget.cachedSongs!;
+    }
+    added = true;
+    setState(() {});
+    // for (int i = 0; i < _songs.length; i++) {
+    //   if (_albums.containsKey(_songs[i].album)) {
+    //     _albums[_songs[i].album]!.add(_songs[i]);
+    //   } else {
+    //     _albums.addEntries([
+    //       MapEntry(_songs[i].album!, [_songs[i]])
+    //     ]);
+    //     _sortedAlbumKeysList.add(_songs[i].album!);
+    //   }
+
+    //   if (_artists.containsKey(_songs[i].artist)) {
+    //     _artists[_songs[i].artist]!.add(_songs[i]);
+    //   } else {
+    //     _artists.addEntries([
+    //       MapEntry(_songs[i].artist!, [_songs[i]])
+    //     ]);
+    //     _sortedArtistKeysList.add(_songs[i].artist!);
+    //   }
+
+    //   if (_genres.containsKey(_songs[i].genre)) {
+    //     _genres[_songs[i].genre]!.add(_songs[i]);
+    //   } else {
+    //     _genres.addEntries([
+    //       MapEntry(_songs[i].genre!, [_songs[i]])
+    //     ]);
+    //     _sortedGenreKeysList.add(_songs[i].genre!);
+    //   }
+    // }
+  }
+
+  void getSongs() {
+    final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
+    for (final path in includedExcludedPaths) {
+      final dir = Directory(path.toString());
+      try {
+        final files = dir.listSync(recursive: true);
+        for (final file in files) {
+          if (file.path.endsWith('.mp3') || file.path.endsWith('.m4a')) {
+            _songs.add({
+              'id': file.path.replaceAll(avoid, '').replaceAll('  ', ' '),
+              'title':
+                  (file.path.split('\\').last.split('.')..removeLast()).join(),
+              'artist': 'Unknown',
+              'album': 'Unknown',
+              'image': '',
+              'year': '',
+              'subtitle': file.path.split('\\').last,
+              'quality': '',
+              'genre': 'Unknown',
+              'path': file.path,
+            });
+          }
+        }
+      } catch (e) {
+        log('Failed to listSync "$path"');
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    _tcontroller = TabController(length: 4, vsync: this);
+    getData();
+    super.initState();
+  }
+
 //   Widget videosTab() {
 //     return _cachedVideos.isEmpty
 //         ? EmptyScreen().emptyScreen(context, 3, 'Nothing to ', 15.0,
@@ -626,23 +705,6 @@ class _DownloadedSongsDesktopState extends State<DownloadedSongsDesktop>
 //               );
 //             });
 //   }
-}
-
-class SongsTab extends StatefulWidget {
-  final List<Map> songs;
-  final int? playlistId;
-  final String? playlistName;
-  final String tempPath;
-  const SongsTab({
-    super.key,
-    required this.songs,
-    required this.tempPath,
-    this.playlistId,
-    this.playlistName,
-  });
-
-  @override
-  State<SongsTab> createState() => _SongsTabState();
 }
 
 class _SongsTabState extends State<SongsTab>
@@ -1253,67 +1315,5 @@ class _SongsTabState extends State<SongsTab>
               ),
             ],
           );
-  }
-}
-
-class AlbumsTabDesktop extends StatefulWidget {
-  final Map<String, List<Map>> albums;
-  final List<String> albumsList;
-  final String tempPath;
-  const AlbumsTabDesktop({
-    super.key,
-    required this.albums,
-    required this.albumsList,
-    required this.tempPath,
-  });
-
-  @override
-  State<AlbumsTabDesktop> createState() => _AlbumsTabDesktopState();
-}
-
-class _AlbumsTabDesktopState extends State<AlbumsTabDesktop>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
-      shrinkWrap: true,
-      itemExtent: 70.0,
-      itemCount: widget.albumsList.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          // leading: OfflineAudioQuery.offlineArtworkWidget(
-          //   id: widget.albums[widget.albumsList[index]]![0].id,
-          //   type: ArtworkType.AUDIO,
-          //   tempPath: widget.tempPath,
-          //   fileName:
-          //       widget.albums[widget.albumsList[index]]![0].displayNameWOExt,
-          // ),
-          title: Text(
-            widget.albumsList[index],
-            overflow: TextOverflow.ellipsis,
-          ),
-          // subtitle: Text(
-          //   '${widget.albums[widget.albumsList[index]]!.length} ${AppLocalizations.of(context)!.songs}',
-          // ),
-          onTap: () {
-            //   Navigator.push(
-            //     context,
-            //     MaterialPageRoute(
-            //       builder: (context) => DownloadedSongs(
-            //         title: widget.albumsList[index],
-            //         cachedSongs: widget.albums[widget.albumsList[index]],
-            //       ),
-            //     ),
-            //   );
-          },
-        );
-      },
-    );
   }
 }

@@ -1,5 +1,5 @@
-import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/copy_clipboard.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -12,19 +12,6 @@ class AboutScreen extends StatefulWidget {
 
 class _AboutScreenState extends State<AboutScreen> {
   String? appVersion;
-
-  @override
-  void initState() {
-    main();
-    super.initState();
-  }
-
-  Future<void> main() async {
-    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      appVersion = packageInfo.version;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +94,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         onPressed: () {
                           launchUrl(
                             Uri.parse(
-                              'https://github.com/StarsWarrior/BlackHole',
+                              'https://github.com/StarsWarrior/Bassic',
                             ),
                             mode: LaunchMode.externalApplication,
                           );
@@ -217,5 +204,18 @@ class _AboutScreenState extends State<AboutScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    main();
+    super.initState();
+  }
+
+  Future<void> main() async {
+    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      appVersion = packageInfo.version;
+    });
   }
 }

@@ -1,8 +1,8 @@
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/like_button.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/CustomWidgets/empty_screen.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/like_button.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -16,12 +16,6 @@ class RecentlyPlayed extends StatefulWidget {
 class _RecentlyPlayedState extends State<RecentlyPlayed> {
   List _songs = [];
   bool added = false;
-
-  Future<void> getSongs() async {
-    _songs = Hive.box('cache').get('recentSongs', defaultValue: []) as List;
-    added = true;
-    setState(() {});
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,5 +162,11 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
         ],
       ),
     );
+  }
+
+  Future<void> getSongs() async {
+    _songs = Hive.box('cache').get('recentSongs', defaultValue: []) as List;
+    added = true;
+    setState(() {});
   }
 }

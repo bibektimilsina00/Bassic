@@ -1,11 +1,11 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:blackhole/CustomWidgets/add_playlist.dart';
-import 'package:blackhole/Helpers/add_mediaitem_to_queue.dart';
-import 'package:blackhole/Helpers/mediaitem_converter.dart';
-import 'package:blackhole/Screens/Common/song_list.dart';
-import 'package:blackhole/Screens/Search/albums.dart';
-import 'package:blackhole/Screens/Search/search.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:bassic/CustomWidgets/add_playlist.dart';
+import 'package:bassic/Helpers/add_mediaitem_to_queue.dart';
+import 'package:bassic/Helpers/mediaitem_converter.dart';
+import 'package:bassic/Screens/Common/song_list.dart';
+import 'package:bassic/Screens/Search/albums.dart';
+import 'package:bassic/Screens/Search/search.dart';
+import 'package:bassic/Services/youtube_services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -27,6 +27,14 @@ class SongTileTrailingMenu extends StatefulWidget {
 
   @override
   _SongTileTrailingMenuState createState() => _SongTileTrailingMenuState();
+}
+
+class YtSongTileTrailingMenu extends StatefulWidget {
+  final Video data;
+  const YtSongTileTrailingMenu({super.key, required this.data});
+
+  @override
+  _YtSongTileTrailingMenuState createState() => _YtSongTileTrailingMenuState();
 }
 
 class _SongTileTrailingMenuState extends State<SongTileTrailingMenu> {
@@ -191,14 +199,6 @@ class _SongTileTrailingMenuState extends State<SongTileTrailingMenu> {
       },
     );
   }
-}
-
-class YtSongTileTrailingMenu extends StatefulWidget {
-  final Video data;
-  const YtSongTileTrailingMenu({super.key, required this.data});
-
-  @override
-  _YtSongTileTrailingMenuState createState() => _YtSongTileTrailingMenuState();
 }
 
 class _YtSongTileTrailingMenuState extends State<YtSongTileTrailingMenu> {

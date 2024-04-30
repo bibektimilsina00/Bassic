@@ -1,6 +1,6 @@
-import 'package:blackhole/CustomWidgets/like_button.dart';
-import 'package:blackhole/CustomWidgets/on_hover.dart';
-import 'package:blackhole/CustomWidgets/song_tile_trailing_menu.dart';
+import 'package:bassic/CustomWidgets/like_button.dart';
+import 'package:bassic/CustomWidgets/on_hover.dart';
+import 'package:bassic/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -12,41 +12,6 @@ class HorizontalAlbumsList extends StatelessWidget {
     required this.songsList,
     required this.onTap,
   });
-
-  String formatString(String? text) {
-    return text == null
-        ? ''
-        : text
-            .replaceAll('&amp;', '&')
-            .replaceAll('&#039;', "'")
-            .replaceAll('&quot;', '"')
-            .trim();
-  }
-
-  String getSubTitle(Map item) {
-    final type = item['type'];
-    if (type == 'charts') {
-      return '';
-    } else if (type == 'playlist' || type == 'radio_station') {
-      return formatString(item['subtitle']?.toString());
-    } else if (type == 'song') {
-      return formatString(item['artist']?.toString());
-    } else {
-      if (item['subtitle'] != null) {
-        return formatString(item['subtitle']?.toString());
-      }
-      final artists = item['more_info']?['artistMap']?['artists']
-          .map((artist) => artist['name'])
-          .toList();
-      if (artists != null) {
-        return formatString(artists?.join(', ')?.toString());
-      }
-      if (item['artist'] != null) {
-        return formatString(item['artist']?.toString());
-      }
-      return '';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -275,5 +240,40 @@ class HorizontalAlbumsList extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String formatString(String? text) {
+    return text == null
+        ? ''
+        : text
+            .replaceAll('&amp;', '&')
+            .replaceAll('&#039;', "'")
+            .replaceAll('&quot;', '"')
+            .trim();
+  }
+
+  String getSubTitle(Map item) {
+    final type = item['type'];
+    if (type == 'charts') {
+      return '';
+    } else if (type == 'playlist' || type == 'radio_station') {
+      return formatString(item['subtitle']?.toString());
+    } else if (type == 'song') {
+      return formatString(item['artist']?.toString());
+    } else {
+      if (item['subtitle'] != null) {
+        return formatString(item['subtitle']?.toString());
+      }
+      final artists = item['more_info']?['artistMap']?['artists']
+          .map((artist) => artist['name'])
+          .toList();
+      if (artists != null) {
+        return formatString(artists?.join(', ')?.toString());
+      }
+      if (item['artist'] != null) {
+        return formatString(item['artist']?.toString());
+      }
+      return '';
+    }
   }
 }

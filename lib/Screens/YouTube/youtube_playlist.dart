@@ -1,10 +1,10 @@
-import 'package:blackhole/CustomWidgets/bouncy_sliver_scroll_view.dart';
-import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/song_tile_trailing_menu.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:bassic/CustomWidgets/bouncy_sliver_scroll_view.dart';
+import 'package:bassic/CustomWidgets/copy_clipboard.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/CustomWidgets/song_tile_trailing_menu.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
+import 'package:bassic/Services/youtube_services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -33,24 +33,6 @@ class _YouTubePlaylistState extends State<YouTubePlaylist> {
   bool done = true;
   List ytSearch =
       Hive.box('settings').get('ytSearch', defaultValue: []) as List;
-
-  @override
-  void initState() {
-    if (!status) {
-      status = true;
-      YouTubeServices().getPlaylistSongs(widget.playlistId).then((value) {
-        if (value.isNotEmpty) {
-          setState(() {
-            searchedList = value;
-            fetched = true;
-          });
-        } else {
-          status = false;
-        }
-      });
-    }
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext cntxt) {
@@ -264,5 +246,23 @@ class _YouTubePlaylistState extends State<YouTubePlaylist> {
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    if (!status) {
+      status = true;
+      YouTubeServices().getPlaylistSongs(widget.playlistId).then((value) {
+        if (value.isNotEmpty) {
+          setState(() {
+            searchedList = value;
+            fetched = true;
+          });
+        } else {
+          status = false;
+        }
+      });
+    }
+    super.initState();
   }
 }

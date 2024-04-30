@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
@@ -11,6 +11,79 @@ class Equalizer extends StatefulWidget {
 
   @override
   _EqualizerState createState() => _EqualizerState();
+}
+
+class EqualizerControls extends StatefulWidget {
+  final AudioPlayerHandler audioHandler;
+  const EqualizerControls({required this.audioHandler});
+  @override
+  _EqualizerControlsState createState() => _EqualizerControlsState();
+}
+
+class VerticalSlider extends StatefulWidget {
+  final double? value;
+  final double? min;
+  final double? max;
+  final int bandIndex;
+  final AudioPlayerHandler audioHandler;
+
+  const VerticalSlider({
+    super.key,
+    required this.value,
+    this.min = 0.0,
+    this.max = 1.0,
+    required this.bandIndex,
+    required this.audioHandler,
+  });
+
+  @override
+  _VerticalSliderState createState() => _VerticalSliderState();
+}
+
+class _EqualizerControlsState extends State<EqualizerControls> {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map>(
+      future: getEq(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox();
+        }
+        final data = snapshot.data;
+        if (data == null) return const SizedBox();
+        return Row(
+          children: [
+            for (final band in data['bands'])
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: VerticalSlider(
+                        min: data['minDecibels'] as double,
+                        max: data['maxDecibels'] as double,
+                        value: band['gain'] as double,
+                        bandIndex: band['index'] as int,
+                        audioHandler: widget.audioHandler,
+                      ),
+                    ),
+                    Text(
+                      '${band['centerFrequency'].round()}\nHz',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Map> getEq() async {
+    final Map parameters =
+        await widget.audioHandler.customAction('getEqualizerParams') as Map;
+    return parameters;
+  }
 }
 
 class _EqualizerState extends State<Equalizer> {
@@ -54,86 +127,8 @@ class _EqualizerState extends State<Equalizer> {
   }
 }
 
-class EqualizerControls extends StatefulWidget {
-  final AudioPlayerHandler audioHandler;
-  const EqualizerControls({required this.audioHandler});
-  @override
-  _EqualizerControlsState createState() => _EqualizerControlsState();
-}
-
-class _EqualizerControlsState extends State<EqualizerControls> {
-  Future<Map> getEq() async {
-    final Map parameters =
-        await widget.audioHandler.customAction('getEqualizerParams') as Map;
-    return parameters;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Map>(
-      future: getEq(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const SizedBox();
-        }
-        final data = snapshot.data;
-        if (data == null) return const SizedBox();
-        return Row(
-          children: [
-            for (final band in data['bands'])
-              Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: VerticalSlider(
-                        min: data['minDecibels'] as double,
-                        max: data['maxDecibels'] as double,
-                        value: band['gain'] as double,
-                        bandIndex: band['index'] as int,
-                        audioHandler: widget.audioHandler,
-                      ),
-                    ),
-                    Text(
-                      '${band['centerFrequency'].round()}\nHz',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class VerticalSlider extends StatefulWidget {
-  final double? value;
-  final double? min;
-  final double? max;
-  final int bandIndex;
-  final AudioPlayerHandler audioHandler;
-
-  const VerticalSlider({
-    super.key,
-    required this.value,
-    this.min = 0.0,
-    this.max = 1.0,
-    required this.bandIndex,
-    required this.audioHandler,
-  });
-
-  @override
-  _VerticalSliderState createState() => _VerticalSliderState();
-}
-
 class _VerticalSliderState extends State<VerticalSlider> {
   double? sliderValue;
-
-  void setGain(int bandIndex, double gain) {
-    widget.audioHandler
-        .customAction('setBandGain', {'band': bandIndex, 'gain': gain});
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,5 +158,10 @@ class _VerticalSliderState extends State<VerticalSlider> {
         ),
       ),
     );
+  }
+
+  void setGain(int bandIndex, double gain) {
+    widget.audioHandler
+        .customAction('setBandGain', {'band': bandIndex, 'gain': gain});
   }
 }

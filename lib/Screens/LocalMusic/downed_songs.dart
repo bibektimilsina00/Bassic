@@ -1,22 +1,37 @@
 import 'dart:developer';
 
-import 'package:blackhole/CustomWidgets/add_playlist.dart';
-import 'package:blackhole/CustomWidgets/custom_physics.dart';
-import 'package:blackhole/CustomWidgets/data_search.dart';
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/playlist_head.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/Helpers/audio_query.dart';
-import 'package:blackhole/Screens/LocalMusic/localplaylists.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/CustomWidgets/add_playlist.dart';
+import 'package:bassic/CustomWidgets/custom_physics.dart';
+import 'package:bassic/CustomWidgets/data_search.dart';
+import 'package:bassic/CustomWidgets/empty_screen.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/CustomWidgets/miniplayer.dart';
+import 'package:bassic/CustomWidgets/playlist_head.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
+import 'package:bassic/Helpers/audio_query.dart';
+import 'package:bassic/Screens/LocalMusic/localplaylists.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path_provider/path_provider.dart';
+
+class AlbumsTab extends StatefulWidget {
+  final Map<String, List<SongModel>> albums;
+  final List<String> albumsList;
+  final String tempPath;
+  const AlbumsTab({
+    super.key,
+    required this.albums,
+    required this.albumsList,
+    required this.tempPath,
+  });
+
+  @override
+  State<AlbumsTab> createState() => _AlbumsTabState();
+}
 
 class DownloadedSongs extends StatefulWidget {
   final List<SongModel>? cachedSongs;
@@ -32,6 +47,70 @@ class DownloadedSongs extends StatefulWidget {
   });
   @override
   _DownloadedSongsState createState() => _DownloadedSongsState();
+}
+
+class SongsTab extends StatefulWidget {
+  final List<SongModel> songs;
+  final int? playlistId;
+  final String? playlistName;
+  final String tempPath;
+  const SongsTab({
+    super.key,
+    required this.songs,
+    required this.tempPath,
+    this.playlistId,
+    this.playlistName,
+  });
+
+  @override
+  State<SongsTab> createState() => _SongsTabState();
+}
+
+class _AlbumsTabState extends State<AlbumsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      shrinkWrap: true,
+      itemExtent: 70.0,
+      itemCount: widget.albumsList.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          leading: OfflineAudioQuery.offlineArtworkWidget(
+            id: widget.albums[widget.albumsList[index]]![0].id,
+            type: ArtworkType.AUDIO,
+            tempPath: widget.tempPath,
+            fileName:
+                widget.albums[widget.albumsList[index]]![0].displayNameWOExt,
+          ),
+          title: Text(
+            widget.albumsList[index],
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            '${widget.albums[widget.albumsList[index]]!.length} ${AppLocalizations.of(context)!.songs}',
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DownloadedSongs(
+                  title: widget.albumsList[index],
+                  cachedSongs: widget.albums[widget.albumsList[index]],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _DownloadedSongsState extends State<DownloadedSongs>
@@ -78,128 +157,6 @@ class _DownloadedSongsState extends State<DownloadedSongs>
     0: OrderType.ASC_OR_SMALLER,
     1: OrderType.DESC_OR_GREATER,
   };
-
-  @override
-  void initState() {
-    _tcontroller =
-        TabController(length: widget.showPlaylists ? 5 : 4, vsync: this);
-    getData();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _tcontroller!.dispose();
-  }
-
-  bool checkIncludedOrExcluded(SongModel song) {
-    for (final path in includedExcludedPaths) {
-      if (song.data.contains(path.toString())) return true;
-    }
-    return false;
-  }
-
-  Future<void> getData() async {
-    await offlineAudioQuery.requestPermission();
-    tempPath ??= (await getTemporaryDirectory()).path;
-    playlistDetails = await offlineAudioQuery.getPlaylists();
-    if (widget.cachedSongs == null) {
-      _songs = (await offlineAudioQuery.getSongs(
-        sortType: songSortTypes[sortValue],
-        orderType: songOrderTypes[orderValue],
-      ))
-          .where(
-            (i) =>
-                (i.duration ?? 60000) > 1000 * minDuration &&
-                (i.isMusic! || i.isPodcast! || i.isAudioBook!) &&
-                (includeOrExclude
-                    ? checkIncludedOrExcluded(i)
-                    : !checkIncludedOrExcluded(i)),
-          )
-          .toList();
-    } else {
-      _songs = widget.cachedSongs!;
-    }
-    added = true;
-    setState(() {});
-    for (int i = 0; i < _songs.length; i++) {
-      try {
-        if (_albums.containsKey(_songs[i].album ?? 'Unknown')) {
-          _albums[_songs[i].album ?? 'Unknown']!.add(_songs[i]);
-        } else {
-          _albums.addEntries([
-            MapEntry(_songs[i].album ?? 'Unknown', [_songs[i]])
-          ]);
-          _sortedAlbumKeysList.add(_songs[i].album!);
-        }
-
-        if (_artists.containsKey(_songs[i].artist ?? 'Unknown')) {
-          _artists[_songs[i].artist ?? 'Unknown']!.add(_songs[i]);
-        } else {
-          _artists.addEntries([
-            MapEntry(_songs[i].artist ?? 'Unknown', [_songs[i]])
-          ]);
-          _sortedArtistKeysList.add(_songs[i].artist!);
-        }
-
-        if (_genres.containsKey(_songs[i].genre ?? 'Unknown')) {
-          _genres[_songs[i].genre ?? 'Unknown']!.add(_songs[i]);
-        } else {
-          _genres.addEntries([
-            MapEntry(_songs[i].genre ?? 'Unknown', [_songs[i]])
-          ]);
-          _sortedGenreKeysList.add(_songs[i].genre!);
-        }
-      } catch (e) {
-        log(e.toString());
-      }
-    }
-  }
-
-  Future<void> sortSongs(int sortVal, int order) async {
-    switch (sortVal) {
-      case 0:
-        _songs.sort(
-          (a, b) => a.displayName.compareTo(b.displayName),
-        );
-        break;
-      case 1:
-        _songs.sort(
-          (a, b) => a.dateAdded.toString().compareTo(b.dateAdded.toString()),
-        );
-        break;
-      case 2:
-        _songs.sort(
-          (a, b) => a.album.toString().compareTo(b.album.toString()),
-        );
-        break;
-      case 3:
-        _songs.sort(
-          (a, b) => a.artist.toString().compareTo(b.artist.toString()),
-        );
-        break;
-      case 4:
-        _songs.sort(
-          (a, b) => a.duration.toString().compareTo(b.duration.toString()),
-        );
-        break;
-      case 5:
-        _songs.sort(
-          (a, b) => a.size.toString().compareTo(b.size.toString()),
-        );
-        break;
-      default:
-        _songs.sort(
-          (a, b) => a.dateAdded.toString().compareTo(b.dateAdded.toString()),
-        );
-        break;
-    }
-
-    if (order == 1) {
-      _songs = _songs.reversed.toList();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -400,6 +357,128 @@ class _DownloadedSongsState extends State<DownloadedSongs>
         ],
       ),
     );
+  }
+
+  bool checkIncludedOrExcluded(SongModel song) {
+    for (final path in includedExcludedPaths) {
+      if (song.data.contains(path.toString())) return true;
+    }
+    return false;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _tcontroller!.dispose();
+  }
+
+  Future<void> getData() async {
+    await offlineAudioQuery.requestPermission();
+    tempPath ??= (await getTemporaryDirectory()).path;
+    playlistDetails = await offlineAudioQuery.getPlaylists();
+    if (widget.cachedSongs == null) {
+      _songs = (await offlineAudioQuery.getSongs(
+        sortType: songSortTypes[sortValue],
+        orderType: songOrderTypes[orderValue],
+      ))
+          .where(
+            (i) =>
+                (i.duration ?? 60000) > 1000 * minDuration &&
+                (i.isMusic! || i.isPodcast! || i.isAudioBook!) &&
+                (includeOrExclude
+                    ? checkIncludedOrExcluded(i)
+                    : !checkIncludedOrExcluded(i)),
+          )
+          .toList();
+    } else {
+      _songs = widget.cachedSongs!;
+    }
+    added = true;
+    setState(() {});
+    for (int i = 0; i < _songs.length; i++) {
+      try {
+        if (_albums.containsKey(_songs[i].album ?? 'Unknown')) {
+          _albums[_songs[i].album ?? 'Unknown']!.add(_songs[i]);
+        } else {
+          _albums.addEntries([
+            MapEntry(_songs[i].album ?? 'Unknown', [_songs[i]])
+          ]);
+          _sortedAlbumKeysList.add(_songs[i].album!);
+        }
+
+        if (_artists.containsKey(_songs[i].artist ?? 'Unknown')) {
+          _artists[_songs[i].artist ?? 'Unknown']!.add(_songs[i]);
+        } else {
+          _artists.addEntries([
+            MapEntry(_songs[i].artist ?? 'Unknown', [_songs[i]])
+          ]);
+          _sortedArtistKeysList.add(_songs[i].artist!);
+        }
+
+        if (_genres.containsKey(_songs[i].genre ?? 'Unknown')) {
+          _genres[_songs[i].genre ?? 'Unknown']!.add(_songs[i]);
+        } else {
+          _genres.addEntries([
+            MapEntry(_songs[i].genre ?? 'Unknown', [_songs[i]])
+          ]);
+          _sortedGenreKeysList.add(_songs[i].genre!);
+        }
+      } catch (e) {
+        log(e.toString());
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    _tcontroller =
+        TabController(length: widget.showPlaylists ? 5 : 4, vsync: this);
+    getData();
+    super.initState();
+  }
+
+  Future<void> sortSongs(int sortVal, int order) async {
+    switch (sortVal) {
+      case 0:
+        _songs.sort(
+          (a, b) => a.displayName.compareTo(b.displayName),
+        );
+        break;
+      case 1:
+        _songs.sort(
+          (a, b) => a.dateAdded.toString().compareTo(b.dateAdded.toString()),
+        );
+        break;
+      case 2:
+        _songs.sort(
+          (a, b) => a.album.toString().compareTo(b.album.toString()),
+        );
+        break;
+      case 3:
+        _songs.sort(
+          (a, b) => a.artist.toString().compareTo(b.artist.toString()),
+        );
+        break;
+      case 4:
+        _songs.sort(
+          (a, b) => a.duration.toString().compareTo(b.duration.toString()),
+        );
+        break;
+      case 5:
+        _songs.sort(
+          (a, b) => a.size.toString().compareTo(b.size.toString()),
+        );
+        break;
+      default:
+        _songs.sort(
+          (a, b) => a.dateAdded.toString().compareTo(b.dateAdded.toString()),
+        );
+        break;
+    }
+
+    if (order == 1) {
+      _songs = _songs.reversed.toList();
+    }
   }
 
 //   Widget videosTab() {
@@ -635,23 +714,6 @@ class _DownloadedSongsState extends State<DownloadedSongs>
 //               );
 //             });
 //   }
-}
-
-class SongsTab extends StatefulWidget {
-  final List<SongModel> songs;
-  final int? playlistId;
-  final String? playlistName;
-  final String tempPath;
-  const SongsTab({
-    super.key,
-    required this.songs,
-    required this.tempPath,
-    this.playlistId,
-    this.playlistName,
-  });
-
-  @override
-  State<SongsTab> createState() => _SongsTabState();
 }
 
 class _SongsTabState extends State<SongsTab>
@@ -1254,67 +1316,5 @@ class _SongsTabState extends State<SongsTab>
               ),
             ],
           );
-  }
-}
-
-class AlbumsTab extends StatefulWidget {
-  final Map<String, List<SongModel>> albums;
-  final List<String> albumsList;
-  final String tempPath;
-  const AlbumsTab({
-    super.key,
-    required this.albums,
-    required this.albumsList,
-    required this.tempPath,
-  });
-
-  @override
-  State<AlbumsTab> createState() => _AlbumsTabState();
-}
-
-class _AlbumsTabState extends State<AlbumsTab>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
-      shrinkWrap: true,
-      itemExtent: 70.0,
-      itemCount: widget.albumsList.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          leading: OfflineAudioQuery.offlineArtworkWidget(
-            id: widget.albums[widget.albumsList[index]]![0].id,
-            type: ArtworkType.AUDIO,
-            tempPath: widget.tempPath,
-            fileName:
-                widget.albums[widget.albumsList[index]]![0].displayNameWOExt,
-          ),
-          title: Text(
-            widget.albumsList[index],
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            '${widget.albums[widget.albumsList[index]]!.length} ${AppLocalizations.of(context)!.songs}',
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DownloadedSongs(
-                  title: widget.albumsList[index],
-                  cachedSongs: widget.albums[widget.albumsList[index]],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }

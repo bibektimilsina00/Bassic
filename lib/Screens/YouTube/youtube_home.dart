@@ -1,8 +1,8 @@
-import 'package:blackhole/CustomWidgets/on_hover.dart';
-import 'package:blackhole/CustomWidgets/search_bar.dart' as sb;
-import 'package:blackhole/Screens/YouTube/youtube_playlist.dart';
-import 'package:blackhole/Screens/YouTube/youtube_search.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:bassic/CustomWidgets/on_hover.dart';
+import 'package:bassic/CustomWidgets/search_bar.dart' as sb;
+import 'package:bassic/Screens/YouTube/youtube_playlist.dart';
+import 'package:bassic/Screens/YouTube/youtube_search.dart';
+import 'package:bassic/Services/youtube_services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';

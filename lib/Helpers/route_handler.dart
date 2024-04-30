@@ -1,7 +1,7 @@
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/Helpers/audio_query.dart';
-import 'package:blackhole/Screens/Common/song_list.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/Helpers/audio_query.dart';
+import 'package:bassic/Screens/Common/song_list.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 

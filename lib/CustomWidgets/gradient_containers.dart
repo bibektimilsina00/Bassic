@@ -1,39 +1,6 @@
-import 'package:blackhole/Helpers/config.dart';
+import 'package:bassic/Helpers/config.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-
-class GradientContainer extends StatefulWidget {
-  final Widget? child;
-  final bool? opacity;
-  const GradientContainer({required this.child, this.opacity});
-  @override
-  _GradientContainerState createState() => _GradientContainerState();
-}
-
-class _GradientContainerState extends State<GradientContainer> {
-  MyTheme currentTheme = GetIt.I<MyTheme>();
-  @override
-  Widget build(BuildContext context) {
-    // ignore: use_decorated_box
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: Theme.of(context).brightness == Brightness.dark
-              ? ((widget.opacity == true)
-                  ? currentTheme.getTransBackGradient()
-                  : currentTheme.getBackGradient())
-              : [
-                  const Color(0xfff5f9ff),
-                  Colors.white,
-                ],
-        ),
-      ),
-      child: widget.child,
-    );
-  }
-}
 
 class BottomGradientContainer extends StatefulWidget {
   final Widget child;
@@ -49,6 +16,27 @@ class BottomGradientContainer extends StatefulWidget {
   @override
   _BottomGradientContainerState createState() =>
       _BottomGradientContainerState();
+}
+
+class GradientCard extends StatefulWidget {
+  final Widget child;
+  final BorderRadius? radius;
+  final double? elevation;
+  const GradientCard({
+    required this.child,
+    this.radius,
+    this.elevation,
+  });
+  @override
+  _GradientCardState createState() => _GradientCardState();
+}
+
+class GradientContainer extends StatefulWidget {
+  final Widget? child;
+  final bool? opacity;
+  const GradientContainer({required this.child, this.opacity});
+  @override
+  _GradientContainerState createState() => _GradientContainerState();
 }
 
 class _BottomGradientContainerState extends State<BottomGradientContainer> {
@@ -77,19 +65,6 @@ class _BottomGradientContainerState extends State<BottomGradientContainer> {
   }
 }
 
-class GradientCard extends StatefulWidget {
-  final Widget child;
-  final BorderRadius? radius;
-  final double? elevation;
-  const GradientCard({
-    required this.child,
-    this.radius,
-    this.elevation,
-  });
-  @override
-  _GradientCardState createState() => _GradientCardState();
-}
-
 class _GradientCardState extends State<GradientCard> {
   MyTheme currentTheme = GetIt.I<MyTheme>();
   @override
@@ -116,6 +91,31 @@ class _GradientCardState extends State<GradientCard> {
         ),
         child: widget.child,
       ),
+    );
+  }
+}
+
+class _GradientContainerState extends State<GradientContainer> {
+  MyTheme currentTheme = GetIt.I<MyTheme>();
+  @override
+  Widget build(BuildContext context) {
+    // ignore: use_decorated_box
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? ((widget.opacity == true)
+                  ? currentTheme.getTransBackGradient()
+                  : currentTheme.getBackGradient())
+              : [
+                  const Color(0xfff5f9ff),
+                  Colors.white,
+                ],
+        ),
+      ),
+      child: widget.child,
     );
   }
 }

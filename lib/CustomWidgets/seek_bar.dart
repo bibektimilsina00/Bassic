@@ -1,9 +1,110 @@
 import 'dart:math';
 
-import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+void showSliderDialog({
+  required BuildContext context,
+  required String title,
+  required int divisions,
+  required double min,
+  required double max,
+  required AudioPlayerHandler audioHandler,
+  String valueSuffix = '',
+}) {
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15.0),
+      ),
+      title: Text(title, textAlign: TextAlign.center),
+      content: StreamBuilder<double>(
+        stream: audioHandler.speed,
+        builder: (context, snapshot) {
+          double value = snapshot.data ?? audioHandler.speed.value;
+          if (value > max) {
+            value = max;
+          }
+          if (value < min) {
+            value = min;
+          }
+          return SizedBox(
+            height: 100.0,
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.minus),
+                      onPressed: audioHandler.speed.value > min
+                          ? () {
+                              audioHandler
+                                  .setSpeed(audioHandler.speed.value - 0.1);
+                            }
+                          : null,
+                    ),
+                    Text(
+                      '${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
+                      style: const TextStyle(
+                        fontFamily: 'Fixed',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24.0,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.plus),
+                      onPressed: audioHandler.speed.value < max
+                          ? () {
+                              audioHandler
+                                  .setSpeed(audioHandler.speed.value + 0.1);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+                Slider(
+                  inactiveColor:
+                      Theme.of(context).iconTheme.color!.withOpacity(0.4),
+                  activeColor: Theme.of(context).iconTheme.color,
+                  divisions: divisions,
+                  min: min,
+                  max: max,
+                  value: value,
+                  onChanged: audioHandler.setSpeed,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
+class HiddenThumbComponentShape extends SliderComponentShape {
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) => Size.zero;
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {}
+}
 
 class SeekBar extends StatefulWidget {
   final AudioPlayerHandler audioHandler;
@@ -37,14 +138,9 @@ class _SeekBarState extends State<SeekBar> {
   bool _dragging = false;
   late SliderThemeData _sliderThemeData;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  Duration get _duration => widget.duration;
 
-    _sliderThemeData = SliderTheme.of(context).copyWith(
-      trackHeight: 4.0,
-    );
-  }
+  Duration get _position => widget.position;
 
   @override
   Widget build(BuildContext context) {
@@ -171,107 +267,12 @@ class _SeekBarState extends State<SeekBar> {
     );
   }
 
-  Duration get _duration => widget.duration;
-  Duration get _position => widget.position;
-}
-
-class HiddenThumbComponentShape extends SliderComponentShape {
   @override
-  Size getPreferredSize(bool isEnabled, bool isDiscrete) => Size.zero;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
-  @override
-  void paint(
-    PaintingContext context,
-    Offset center, {
-    required Animation<double> activationAnimation,
-    required Animation<double> enableAnimation,
-    required bool isDiscrete,
-    required TextPainter labelPainter,
-    required RenderBox parentBox,
-    required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
-    required double value,
-    required double textScaleFactor,
-    required Size sizeWithOverflow,
-  }) {}
-}
-
-void showSliderDialog({
-  required BuildContext context,
-  required String title,
-  required int divisions,
-  required double min,
-  required double max,
-  required AudioPlayerHandler audioHandler,
-  String valueSuffix = '',
-}) {
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      title: Text(title, textAlign: TextAlign.center),
-      content: StreamBuilder<double>(
-        stream: audioHandler.speed,
-        builder: (context, snapshot) {
-          double value = snapshot.data ?? audioHandler.speed.value;
-          if (value > max) {
-            value = max;
-          }
-          if (value < min) {
-            value = min;
-          }
-          return SizedBox(
-            height: 100.0,
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(CupertinoIcons.minus),
-                      onPressed: audioHandler.speed.value > min
-                          ? () {
-                              audioHandler
-                                  .setSpeed(audioHandler.speed.value - 0.1);
-                            }
-                          : null,
-                    ),
-                    Text(
-                      '${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
-                      style: const TextStyle(
-                        fontFamily: 'Fixed',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24.0,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(CupertinoIcons.plus),
-                      onPressed: audioHandler.speed.value < max
-                          ? () {
-                              audioHandler
-                                  .setSpeed(audioHandler.speed.value + 0.1);
-                            }
-                          : null,
-                    ),
-                  ],
-                ),
-                Slider(
-                  inactiveColor:
-                      Theme.of(context).iconTheme.color!.withOpacity(0.4),
-                  activeColor: Theme.of(context).iconTheme.color,
-                  divisions: divisions,
-                  min: min,
-                  max: max,
-                  value: value,
-                  onChanged: audioHandler.setSpeed,
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    ),
-  );
+    _sliderThemeData = SliderTheme.of(context).copyWith(
+      trackHeight: 4.0,
+    );
+  }
 }

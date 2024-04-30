@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:blackhole/CustomWidgets/custom_physics.dart';
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-// import 'package:blackhole/Helpers/countrycodes.dart';
-import 'package:blackhole/Screens/Search/search.dart';
-// import 'package:blackhole/Screens/Settings/setting.dart';
+import 'package:bassic/CustomWidgets/custom_physics.dart';
+import 'package:bassic/CustomWidgets/empty_screen.dart';
+// import 'package:bassic/Helpers/countrycodes.dart';
+import 'package:bassic/Screens/Search/search.dart';
+// import 'package:bassic/Screens/Settings/setting.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,13 +13,31 @@ import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
 
-List topSongs = [];
-List viralSongs = [];
 List cachedTopSongs = [];
 List cachedViralSongs = [];
-bool fetched = false;
 bool emptyTop = false;
 bool emptyViral = false;
+bool fetched = false;
+List topSongs = [];
+List viralSongs = [];
+
+Future<List> scrapData(String type) async {
+  const String authority = 'www.volt.fm';
+  const String topPath = '/charts/spotify-top';
+  const String viralPath = '/charts/spotify-viral';
+  // const String weeklyPath = '/weekly';
+
+  final String unencodedPath = type == 'top' ? topPath : viralPath;
+  // if (isWeekly) unencodedPath += weeklyPath;
+
+  final Response res = await get(Uri.https(authority, unencodedPath));
+
+  if (res.statusCode != 200) return List.empty();
+  final result = RegExp(r'<script.*>({\"context\".*})<\/script>', dotAll: true)
+      .firstMatch(res.body)![1]!;
+  final Map data = json.decode(result) as Map;
+  return data['chart_ranking']['tracks'] as List;
+}
 
 class TopCharts extends StatefulWidget {
   final PageController pageController;
@@ -27,6 +45,13 @@ class TopCharts extends StatefulWidget {
 
   @override
   _TopChartsState createState() => _TopChartsState();
+}
+
+class TopPage extends StatefulWidget {
+  final String type;
+  const TopPage({super.key, required this.type});
+  @override
+  _TopPageState createState() => _TopPageState();
 }
 
 class _TopChartsState extends State<TopCharts>
@@ -143,83 +168,10 @@ class _TopChartsState extends State<TopCharts>
   }
 }
 
-Future<List> scrapData(String type) async {
-  const String authority = 'www.volt.fm';
-  const String topPath = '/charts/spotify-top';
-  const String viralPath = '/charts/spotify-viral';
-  // const String weeklyPath = '/weekly';
-
-  final String unencodedPath = type == 'top' ? topPath : viralPath;
-  // if (isWeekly) unencodedPath += weeklyPath;
-
-  final Response res = await get(Uri.https(authority, unencodedPath));
-
-  if (res.statusCode != 200) return List.empty();
-  final result = RegExp(r'<script.*>({\"context\".*})<\/script>', dotAll: true)
-      .firstMatch(res.body)![1]!;
-  final Map data = json.decode(result) as Map;
-  return data['chart_ranking']['tracks'] as List;
-}
-
-class TopPage extends StatefulWidget {
-  final String type;
-  const TopPage({super.key, required this.type});
-  @override
-  _TopPageState createState() => _TopPageState();
-}
-
 class _TopPageState extends State<TopPage>
     with AutomaticKeepAliveClientMixin<TopPage> {
-  Future<void> getData(String type) async {
-    fetched = true;
-    final List temp = await compute(scrapData, type);
-    setState(() {
-      if (type == 'top') {
-        topSongs = temp;
-        if (topSongs.isNotEmpty) {
-          cachedTopSongs = topSongs;
-          Hive.box('cache').put(type, topSongs);
-        }
-        emptyTop = topSongs.isEmpty && cachedTopSongs.isEmpty;
-      } else {
-        viralSongs = temp;
-        if (viralSongs.isNotEmpty) {
-          cachedViralSongs = viralSongs;
-          Hive.box('cache').put(type, viralSongs);
-        }
-        emptyViral = viralSongs.isEmpty && cachedViralSongs.isEmpty;
-      }
-    });
-  }
-
-  Future<void> getCachedData(String type) async {
-    fetched = true;
-    if (type == 'top') {
-      cachedTopSongs =
-          await Hive.box('cache').get(type, defaultValue: []) as List;
-    } else {
-      cachedViralSongs =
-          await Hive.box('cache').get(type, defaultValue: []) as List;
-    }
-    setState(() {});
-  }
-
   @override
   bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.type == 'top' && topSongs.isEmpty) {
-      getCachedData(widget.type);
-      getData(widget.type);
-    } else {
-      if (viralSongs.isEmpty) {
-        getCachedData(widget.type);
-        getData(widget.type);
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -316,5 +268,53 @@ class _TopPageState extends State<TopPage>
           ),
       ],
     );
+  }
+
+  Future<void> getCachedData(String type) async {
+    fetched = true;
+    if (type == 'top') {
+      cachedTopSongs =
+          await Hive.box('cache').get(type, defaultValue: []) as List;
+    } else {
+      cachedViralSongs =
+          await Hive.box('cache').get(type, defaultValue: []) as List;
+    }
+    setState(() {});
+  }
+
+  Future<void> getData(String type) async {
+    fetched = true;
+    final List temp = await compute(scrapData, type);
+    setState(() {
+      if (type == 'top') {
+        topSongs = temp;
+        if (topSongs.isNotEmpty) {
+          cachedTopSongs = topSongs;
+          Hive.box('cache').put(type, topSongs);
+        }
+        emptyTop = topSongs.isEmpty && cachedTopSongs.isEmpty;
+      } else {
+        viralSongs = temp;
+        if (viralSongs.isNotEmpty) {
+          cachedViralSongs = viralSongs;
+          Hive.box('cache').put(type, viralSongs);
+        }
+        emptyViral = viralSongs.isEmpty && cachedViralSongs.isEmpty;
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.type == 'top' && topSongs.isEmpty) {
+      getCachedData(widget.type);
+      getData(widget.type);
+    } else {
+      if (viralSongs.isEmpty) {
+        getCachedData(widget.type);
+        getData(widget.type);
+      }
+    }
   }
 }

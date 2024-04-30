@@ -1,4 +1,4 @@
-import 'package:blackhole/CustomWidgets/snackbar.dart';
+import 'package:bassic/CustomWidgets/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
@@ -26,35 +26,6 @@ class _ArtistLikeButtonState extends State<ArtistLikeButton>
   late Animation<double> _curve;
   Map likedArtists =
       Hive.box('settings').get('likedArtists', defaultValue: {}) as Map;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-
-    _curve = CurvedAnimation(parent: _controller, curve: Curves.slowMiddle);
-
-    _scale = TweenSequence(<TweenSequenceItem<double>>[
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.2),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.2, end: 1.0),
-        weight: 50,
-      ),
-    ]).animate(_curve);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,5 +66,34 @@ class _ArtistLikeButtonState extends State<ArtistLikeButton>
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+
+    _curve = CurvedAnimation(parent: _controller, curve: Curves.slowMiddle);
+
+    _scale = TweenSequence(<TweenSequenceItem<double>>[
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.2),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.2, end: 1.0),
+        weight: 50,
+      ),
+    ]).animate(_curve);
   }
 }

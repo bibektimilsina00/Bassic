@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/Helpers/playlist.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:bassic/APIs/api.dart';
+import 'package:bassic/CustomWidgets/gradient_containers.dart';
+import 'package:bassic/Helpers/playlist.dart';
+import 'package:bassic/Services/youtube_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';

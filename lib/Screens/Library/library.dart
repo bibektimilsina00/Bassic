@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:blackhole/Screens/Library/liked.dart';
-import 'package:blackhole/Screens/LocalMusic/downed_songs.dart';
-import 'package:blackhole/Screens/LocalMusic/downed_songs_desktop.dart';
+import 'package:bassic/Screens/Library/liked.dart';
+import 'package:bassic/Screens/LocalMusic/downed_songs.dart';
+import 'package:bassic/Screens/LocalMusic/downed_songs_desktop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -12,6 +12,36 @@ class LibraryPage extends StatefulWidget {
 
   @override
   _LibraryPageState createState() => _LibraryPageState();
+}
+
+class LibraryTile extends StatelessWidget {
+  final String title;
+
+  final IconData icon;
+  final Function() onTap;
+  const LibraryTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          color: Theme.of(context).iconTheme.color,
+        ),
+      ),
+      leading: Icon(
+        icon,
+        color: Theme.of(context).iconTheme.color,
+      ),
+      onTap: onTap,
+    );
+  }
 }
 
 class _LibraryPageState extends State<LibraryPage> {
@@ -115,36 +145,6 @@ class _LibraryPageState extends State<LibraryPage> {
           },
         ),
       ],
-    );
-  }
-}
-
-class LibraryTile extends StatelessWidget {
-  const LibraryTile({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  final String title;
-  final IconData icon;
-  final Function() onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(
-        title,
-        style: TextStyle(
-          color: Theme.of(context).iconTheme.color,
-        ),
-      ),
-      leading: Icon(
-        icon,
-        color: Theme.of(context).iconTheme.color,
-      ),
-      onTap: onTap,
     );
   }
 }

@@ -2,21 +2,21 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:blackhole/Helpers/config.dart';
-import 'package:blackhole/Helpers/handle_native.dart';
-import 'package:blackhole/Helpers/route_handler.dart';
-import 'package:blackhole/Screens/About/about.dart';
-import 'package:blackhole/Screens/Home/home.dart';
-import 'package:blackhole/Screens/Library/downloads.dart';
-import 'package:blackhole/Screens/Library/nowplaying.dart';
-import 'package:blackhole/Screens/Library/playlists.dart';
-import 'package:blackhole/Screens/Library/recent.dart';
-import 'package:blackhole/Screens/Login/auth.dart';
-import 'package:blackhole/Screens/Login/pref.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
-import 'package:blackhole/Screens/Settings/setting.dart';
-import 'package:blackhole/Services/audio_service.dart';
-import 'package:blackhole/theme/app_theme.dart';
+import 'package:bassic/Helpers/config.dart';
+import 'package:bassic/Helpers/handle_native.dart';
+import 'package:bassic/Helpers/route_handler.dart';
+import 'package:bassic/Screens/About/about.dart';
+import 'package:bassic/Screens/Home/home.dart';
+import 'package:bassic/Screens/Library/downloads.dart';
+import 'package:bassic/Screens/Library/nowplaying.dart';
+import 'package:bassic/Screens/Library/playlists.dart';
+import 'package:bassic/Screens/Library/recent.dart';
+import 'package:bassic/Screens/Login/auth.dart';
+import 'package:bassic/Screens/Login/pref.dart';
+import 'package:bassic/Screens/Player/audioplayer.dart';
+import 'package:bassic/Screens/Settings/setting.dart';
+import 'package:bassic/Services/audio_service.dart';
+import 'package:bassic/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -32,7 +32,7 @@ Future<void> main() async {
   Paint.enableDithering = true;
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await Hive.initFlutter('BlackHole');
+    await Hive.initFlutter('Bassic');
   } else {
     await Hive.initFlutter();
   }
@@ -54,8 +54,8 @@ Future<void> openHiveBox(String boxName, {bool limit = false}) async {
     File dbFile = File('$dirPath/$boxName.hive');
     File lockFile = File('$dirPath/$boxName.lock');
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      dbFile = File('$dirPath/BlackHole/$boxName.hive');
-      lockFile = File('$dirPath/BlackHole/$boxName.lock');
+      dbFile = File('$dirPath/Bassic/$boxName.hive');
+      lockFile = File('$dirPath/Bassic/$boxName.lock');
     }
     await dbFile.delete();
     await lockFile.delete();
@@ -91,8 +91,8 @@ Future<void> startService() async {
   final AudioPlayerHandler audioHandler = await AudioService.init(
     builder: () => AudioPlayerHandlerImpl(),
     config: AudioServiceConfig(
-      androidNotificationChannelId: 'com.shadow.blackhole.channel.audio',
-      androidNotificationChannelName: 'BlackHole',
+      androidNotificationChannelId: 'com.app.bassic.channel.audio',
+      androidNotificationChannelName: 'Bassic',
       androidNotificationOngoing: true,
       androidNotificationIcon: 'drawable/ic_stat_music_note',
       androidShowNotificationBadge: true,
@@ -142,8 +142,8 @@ class _MyAppState extends State<MyApp> {
     ]);
 
     return MaterialApp(
-      title: 'BlackHole',
-      restorationScopeId: 'blackhole',
+      title: 'Bassic',
+      restorationScopeId: 'bassic',
       debugShowCheckedModeBanner: false,
       themeMode: AppTheme.themeMode,
       theme: AppTheme.lightTheme(
