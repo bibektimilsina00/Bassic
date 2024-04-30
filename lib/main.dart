@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'dart:async';
 import 'dart:io';
 
@@ -66,6 +47,27 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
+Future<void> openHiveBox(String boxName, {bool limit = false}) async {
+  final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
+    final Directory dir = await getApplicationDocumentsDirectory();
+    final String dirPath = dir.path;
+    File dbFile = File('$dirPath/$boxName.hive');
+    File lockFile = File('$dirPath/$boxName.lock');
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      dbFile = File('$dirPath/BlackHole/$boxName.hive');
+      lockFile = File('$dirPath/BlackHole/$boxName.lock');
+    }
+    await dbFile.delete();
+    await lockFile.delete();
+    await Hive.openBox(boxName);
+    throw 'Failed to open $boxName Box\nError: $error';
+  });
+  // clear box if it grows large
+  if (limit && box.length > 500) {
+    box.clear();
+  }
+}
+
 Future<void> setOptimalDisplayMode() async {
   final List<DisplayMode> supported = await FlutterDisplayMode.supported;
   final DisplayMode active = await FlutterDisplayMode.active;
@@ -103,27 +105,6 @@ Future<void> startService() async {
   GetIt.I.registerSingleton<MyTheme>(MyTheme());
 }
 
-Future<void> openHiveBox(String boxName, {bool limit = false}) async {
-  final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
-    final Directory dir = await getApplicationDocumentsDirectory();
-    final String dirPath = dir.path;
-    File dbFile = File('$dirPath/$boxName.hive');
-    File lockFile = File('$dirPath/$boxName.lock');
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      dbFile = File('$dirPath/BlackHole/$boxName.hive');
-      lockFile = File('$dirPath/BlackHole/$boxName.lock');
-    }
-    await dbFile.delete();
-    await lockFile.delete();
-    await Hive.openBox(boxName);
-    throw 'Failed to open $boxName Box\nError: $error';
-  });
-  // clear box if it grows large
-  if (limit && box.length > 500) {
-    box.clear();
-  }
-}
-
 class MyApp extends StatefulWidget {
   @override
   _MyAppState createState() => _MyAppState();
@@ -136,74 +117,6 @@ class _MyAppState extends State<MyApp> {
   Locale _locale = const Locale('en', '');
   late StreamSubscription _intentDataStreamSubscription;
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-  @override
-  void dispose() {
-    _intentDataStreamSubscription.cancel();
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    final String lang =
-        Hive.box('settings').get('lang', defaultValue: 'English') as String;
-    final Map<String, String> codes = {
-      'Chinese': 'zh',
-      'Czech': 'cs',
-      'Dutch': 'nl',
-      'English': 'en',
-      'French': 'fr',
-      'German': 'de',
-      'Hebrew': 'he',
-      'Hindi': 'hi',
-      'Hungarian': 'hu',
-      'Indonesian': 'id',
-      'Italian': 'it',
-      'Polish': 'pl',
-      'Portuguese': 'pt',
-      'Russian': 'ru',
-      'Spanish': 'es',
-      'Tamil': 'ta',
-      'Turkish': 'tr',
-      'Ukrainian': 'uk',
-      'Urdu': 'ur',
-    };
-    _locale = Locale(codes[lang]!);
-
-    AppTheme.currentTheme.addListener(() {
-      setState(() {});
-    });
-
-    // For sharing or opening urls/text coming from outside the app while the app is in the memory
-    _intentDataStreamSubscription = ReceiveSharingIntent.getTextStream().listen(
-      (String value) {
-        handleSharedText(value, navigatorKey);
-      },
-      onError: (err) {
-        // print("ERROR in getTextStream: $err");
-      },
-    );
-
-    // For sharing or opening urls/text coming from outside the app while the app is closed
-    ReceiveSharingIntent.getInitialText().then(
-      (String? value) {
-        if (value != null) handleSharedText(value, navigatorKey);
-      },
-    );
-  }
-
-  void setLocale(Locale value) {
-    setState(() {
-      _locale = value;
-    });
-  }
-
-  Widget initialFuntion() {
-    return Hive.box('settings').get('userId') != null
-        ? HomePage()
-        : AuthScreen();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -282,5 +195,73 @@ class _MyAppState extends State<MyApp> {
         return HandleRoute.handleRoute(settings.name);
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _intentDataStreamSubscription.cancel();
+    super.dispose();
+  }
+
+  Widget initialFuntion() {
+    return Hive.box('settings').get('userId') != null
+        ? HomePage()
+        : AuthScreen();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final String lang =
+        Hive.box('settings').get('lang', defaultValue: 'English') as String;
+    final Map<String, String> codes = {
+      'Chinese': 'zh',
+      'Czech': 'cs',
+      'Dutch': 'nl',
+      'English': 'en',
+      'French': 'fr',
+      'German': 'de',
+      'Hebrew': 'he',
+      'Hindi': 'hi',
+      'Hungarian': 'hu',
+      'Indonesian': 'id',
+      'Italian': 'it',
+      'Polish': 'pl',
+      'Portuguese': 'pt',
+      'Russian': 'ru',
+      'Spanish': 'es',
+      'Tamil': 'ta',
+      'Turkish': 'tr',
+      'Ukrainian': 'uk',
+      'Urdu': 'ur',
+    };
+    _locale = Locale(codes[lang]!);
+
+    AppTheme.currentTheme.addListener(() {
+      setState(() {});
+    });
+
+    // For sharing or opening urls/text coming from outside the app while the app is in the memory
+    _intentDataStreamSubscription = ReceiveSharingIntent.getTextStream().listen(
+      (String value) {
+        handleSharedText(value, navigatorKey);
+      },
+      onError: (err) {
+        // print("ERROR in getTextStream: $err");
+      },
+    );
+
+    // For sharing or opening urls/text coming from outside the app while the app is closed
+    ReceiveSharingIntent.getInitialText().then(
+      (String? value) {
+        if (value != null) handleSharedText(value, navigatorKey);
+      },
+    );
+  }
+
+  void setLocale(Locale value) {
+    setState(() {
+      _locale = value;
+    });
   }
 }

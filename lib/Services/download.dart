@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'dart:developer';
 import 'dart:io';
 
@@ -52,6 +33,222 @@ class Download with ChangeNotifier {
   bool downloadLyrics =
       Hive.box('settings').get('downloadLyrics', defaultValue: false) as bool;
   bool download = true;
+
+  Future<void> downloadSong(
+    BuildContext context,
+    String? dlPath,
+    String fileName,
+    Map data,
+  ) async {
+    progress = null;
+    notifyListeners();
+    String? filepath;
+    late String filepath2;
+    String? appPath;
+    final List<int> bytes = [];
+    String lyrics;
+    final artname = fileName.replaceAll('.m4a', '.jpg');
+    if (!Platform.isWindows) {
+      appPath = Hive.box('settings').get('tempDirPath')?.toString();
+      appPath ??= (await getTemporaryDirectory()).path;
+    } else {
+      final Directory? temp = await getDownloadsDirectory();
+      appPath = temp!.path;
+    }
+
+    try {
+      await File('$dlPath/$fileName')
+          .create(recursive: true)
+          .then((value) => filepath = value.path);
+      // print('created audio file');
+
+      await File('$appPath/$artname')
+          .create(recursive: true)
+          .then((value) => filepath2 = value.path);
+    } catch (e) {
+      await [
+        Permission.manageExternalStorage,
+      ].request();
+      await File('$dlPath/$fileName')
+          .create(recursive: true)
+          .then((value) => filepath = value.path);
+      // print('created audio file');
+      await File('$appPath/$artname')
+          .create(recursive: true)
+          .then((value) => filepath2 = value.path);
+    }
+    // debugPrint('Audio path $filepath');
+    // debugPrint('Image path $filepath2');
+    String kUrl = data['url'].toString();
+
+    if (data['url'].toString().contains('google')) {
+      // filename = filename.replaceAll('.m4a', '.opus');
+
+      kUrl = preferredYtDownloadQuality == 'High'
+          ? data['highUrl'].toString()
+          : data['lowUrl'].toString();
+      if (kUrl == 'null') {
+        kUrl = data['url'].toString();
+      }
+      log("low quality is ${data['lowUrl']}");
+      log("high quality is ${data['highUrl']}");
+    } else {
+      kUrl = kUrl.replaceAll(
+        '_96.',
+        "_${preferredDownloadQuality.replaceAll(' kbps', '')}.",
+      );
+    }
+
+    final client = Client();
+    final response = await client.send(Request('GET', Uri.parse(kUrl)));
+    final int total = response.contentLength ?? 0;
+    int recieved = 0;
+    response.stream.asBroadcastStream();
+    response.stream.listen((value) {
+      bytes.addAll(value);
+      try {
+        recieved += value.length;
+        progress = recieved / total;
+        notifyListeners();
+        if (!download) {
+          client.close();
+        }
+      } catch (e) {
+        // print('Error: $e');
+      }
+    }).onDone(() async {
+      if (download) {
+        final file = File(filepath!);
+        await file.writeAsBytes(bytes);
+
+        final client = HttpClient();
+        final HttpClientRequest request2 =
+            await client.getUrl(Uri.parse(data['image'].toString()));
+        final HttpClientResponse response2 = await request2.close();
+        final bytes2 = await consolidateHttpClientResponseBytes(response2);
+        final File file2 = File(filepath2);
+
+        await file2.writeAsBytes(bytes2);
+        try {
+          lyrics = downloadLyrics
+              ? await Lyrics.getLyrics(
+                  id: data['id'].toString(),
+                  title: data['title'].toString(),
+                  artist: data['artist'].toString(),
+                  saavnHas: data['has_lyrics'] == 'true',
+                )
+              : '';
+        } catch (e) {
+          // print('Error fetching lyrics: $e');
+          lyrics = '';
+        }
+
+        // if (filepath!.endsWith('.opus')) {
+        // List<String>? _argsList;
+        // ShowSnackBar().showSnackBar(
+        //   context,
+        //   'Converting "opus" to "$downloadFormat"',
+        // );
+
+        // if (downloadFormat == 'mp3')
+        //   _argsList = [
+        //     "-y",
+        //     "-i",
+        //     "$filepath",
+        //     "-c:a",
+        //     "libmp3lame",
+        //     "-b:a",
+        //     "256k",
+        //     "${filepath.replaceAll('.opus', '.mp3')}"
+        //   ];
+        // if (downloadFormat == 'm4a') {
+        //   _argsList = [
+        //     '-y',
+        //     '-i',
+        //     filepath!,
+        //     '-c:a',
+        //     'aac',
+        //     '-b:a',
+        //     '256k',
+        //     filepath!.replaceAll('.opus', '.m4a')
+        //   ];
+        // }
+        // await FlutterFFmpeg().executeWithArguments(_argsList);
+        // await File(filepath!).delete();
+        // filepath = filepath!.replaceAll('.opus', '.$downloadFormat');
+        // }
+
+        // debugPrint('Started tag editing');
+        final Tag tag = Tag(
+          title: data['title'].toString(),
+          artist: data['artist'].toString(),
+          albumArtist: data['album_artist']?.toString() ??
+              data['artist']?.toString().split(', ')[0],
+          artwork: filepath2,
+          album: data['album'].toString(),
+          genre: data['language'].toString(),
+          year: data['year'].toString(),
+          lyrics: lyrics,
+          comment: 'BlackHole',
+        );
+        if (Platform.isAndroid) {
+          try {
+            final tagger = Audiotagger();
+            await tagger.writeTags(
+              path: filepath!,
+              tag: tag,
+            );
+            // await Future.delayed(const Duration(seconds: 1), () async {
+            //   if (await file2.exists()) {
+            //     await file2.delete();
+            //   }
+            // });
+          } catch (e) {
+            log('Failed to edit tags');
+          }
+        }
+        client.close();
+        // debugPrint('Done');
+        lastDownloadId = data['id'].toString();
+        progress = 0.0;
+        notifyListeners();
+
+        final songData = {
+          'id': data['id'].toString(),
+          'title': data['title'].toString(),
+          'subtitle': data['subtitle'].toString(),
+          'artist': data['artist'].toString(),
+          'albumArtist': data['album_artist']?.toString() ??
+              data['artist']?.toString().split(', ')[0],
+          'album': data['album'].toString(),
+          'genre': data['language'].toString(),
+          'year': data['year'].toString(),
+          'lyrics': lyrics,
+          'duration': data['duration'],
+          'release_date': data['release_date'].toString(),
+          'album_id': data['album_id'].toString(),
+          'perma_url': data['perma_url'].toString(),
+          'quality': preferredDownloadQuality,
+          'path': filepath,
+          'image': filepath2,
+          'image_url': data['image'].toString(),
+          'from_yt': data['language'].toString() == 'YouTube',
+          'dateAdded': DateTime.now().toString(),
+        };
+        Hive.box('downloads').put(songData['id'].toString(), songData);
+
+        ShowSnackBar().showSnackBar(
+          context,
+          '"${data['title'].toString()}" ${AppLocalizations.of(context)!.downed}',
+        );
+      } else {
+        download = true;
+        progress = 0.0;
+        File(filepath!).delete();
+        File(filepath2).delete();
+      }
+    });
+  }
 
   Future<void> prepareDownload(
     BuildContext context,
@@ -271,221 +468,5 @@ class Download with ChangeNotifier {
     } else {
       downloadSong(context, dlPath, filename, data);
     }
-  }
-
-  Future<void> downloadSong(
-    BuildContext context,
-    String? dlPath,
-    String fileName,
-    Map data,
-  ) async {
-    progress = null;
-    notifyListeners();
-    String? filepath;
-    late String filepath2;
-    String? appPath;
-    final List<int> bytes = [];
-    String lyrics;
-    final artname = fileName.replaceAll('.m4a', '.jpg');
-    if (!Platform.isWindows) {
-      appPath = Hive.box('settings').get('tempDirPath')?.toString();
-      appPath ??= (await getTemporaryDirectory()).path;
-    } else {
-      final Directory? temp = await getDownloadsDirectory();
-      appPath = temp!.path;
-    }
-
-    try {
-      await File('$dlPath/$fileName')
-          .create(recursive: true)
-          .then((value) => filepath = value.path);
-      // print('created audio file');
-
-      await File('$appPath/$artname')
-          .create(recursive: true)
-          .then((value) => filepath2 = value.path);
-    } catch (e) {
-      await [
-        Permission.manageExternalStorage,
-      ].request();
-      await File('$dlPath/$fileName')
-          .create(recursive: true)
-          .then((value) => filepath = value.path);
-      // print('created audio file');
-      await File('$appPath/$artname')
-          .create(recursive: true)
-          .then((value) => filepath2 = value.path);
-    }
-    // debugPrint('Audio path $filepath');
-    // debugPrint('Image path $filepath2');
-    String kUrl = data['url'].toString();
-
-    if (data['url'].toString().contains('google')) {
-      // filename = filename.replaceAll('.m4a', '.opus');
-
-      kUrl = preferredYtDownloadQuality == 'High'
-          ? data['highUrl'].toString()
-          : data['lowUrl'].toString();
-      if (kUrl == 'null') {
-        kUrl = data['url'].toString();
-      }
-      log("low quality is ${data['lowUrl']}");
-      log("high quality is ${data['highUrl']}");
-    } else {
-      kUrl = kUrl.replaceAll(
-        '_96.',
-        "_${preferredDownloadQuality.replaceAll(' kbps', '')}.",
-      );
-    }
-
-    final client = Client();
-    final response = await client.send(Request('GET', Uri.parse(kUrl)));
-    final int total = response.contentLength ?? 0;
-    int recieved = 0;
-    response.stream.asBroadcastStream();
-    response.stream.listen((value) {
-      bytes.addAll(value);
-      try {
-        recieved += value.length;
-        progress = recieved / total;
-        notifyListeners();
-        if (!download) {
-          client.close();
-        }
-      } catch (e) {
-        // print('Error: $e');
-      }
-    }).onDone(() async {
-      if (download) {
-        final file = File(filepath!);
-        await file.writeAsBytes(bytes);
-
-        final client = HttpClient();
-        final HttpClientRequest request2 =
-            await client.getUrl(Uri.parse(data['image'].toString()));
-        final HttpClientResponse response2 = await request2.close();
-        final bytes2 = await consolidateHttpClientResponseBytes(response2);
-        final File file2 = File(filepath2);
-
-        await file2.writeAsBytes(bytes2);
-        try {
-          lyrics = downloadLyrics
-              ? await Lyrics.getLyrics(
-                  id: data['id'].toString(),
-                  title: data['title'].toString(),
-                  artist: data['artist'].toString(),
-                  saavnHas: data['has_lyrics'] == 'true',
-                )
-              : '';
-        } catch (e) {
-          // print('Error fetching lyrics: $e');
-          lyrics = '';
-        }
-
-        // if (filepath!.endsWith('.opus')) {
-        // List<String>? _argsList;
-        // ShowSnackBar().showSnackBar(
-        //   context,
-        //   'Converting "opus" to "$downloadFormat"',
-        // );
-
-        // if (downloadFormat == 'mp3')
-        //   _argsList = [
-        //     "-y",
-        //     "-i",
-        //     "$filepath",
-        //     "-c:a",
-        //     "libmp3lame",
-        //     "-b:a",
-        //     "256k",
-        //     "${filepath.replaceAll('.opus', '.mp3')}"
-        //   ];
-        // if (downloadFormat == 'm4a') {
-        //   _argsList = [
-        //     '-y',
-        //     '-i',
-        //     filepath!,
-        //     '-c:a',
-        //     'aac',
-        //     '-b:a',
-        //     '256k',
-        //     filepath!.replaceAll('.opus', '.m4a')
-        //   ];
-        // }
-        // await FlutterFFmpeg().executeWithArguments(_argsList);
-        // await File(filepath!).delete();
-        // filepath = filepath!.replaceAll('.opus', '.$downloadFormat');
-        // }
-
-        // debugPrint('Started tag editing');
-        final Tag tag = Tag(
-          title: data['title'].toString(),
-          artist: data['artist'].toString(),
-          albumArtist: data['album_artist']?.toString() ??
-              data['artist']?.toString().split(', ')[0],
-          artwork: filepath2,
-          album: data['album'].toString(),
-          genre: data['language'].toString(),
-          year: data['year'].toString(),
-          lyrics: lyrics,
-          comment: 'BlackHole',
-        );
-        if (Platform.isAndroid) {
-          try {
-            final tagger = Audiotagger();
-            await tagger.writeTags(
-              path: filepath!,
-              tag: tag,
-            );
-            // await Future.delayed(const Duration(seconds: 1), () async {
-            //   if (await file2.exists()) {
-            //     await file2.delete();
-            //   }
-            // });
-          } catch (e) {
-            log('Failed to edit tags');
-          }
-        }
-        client.close();
-        // debugPrint('Done');
-        lastDownloadId = data['id'].toString();
-        progress = 0.0;
-        notifyListeners();
-
-        final songData = {
-          'id': data['id'].toString(),
-          'title': data['title'].toString(),
-          'subtitle': data['subtitle'].toString(),
-          'artist': data['artist'].toString(),
-          'albumArtist': data['album_artist']?.toString() ??
-              data['artist']?.toString().split(', ')[0],
-          'album': data['album'].toString(),
-          'genre': data['language'].toString(),
-          'year': data['year'].toString(),
-          'lyrics': lyrics,
-          'duration': data['duration'],
-          'release_date': data['release_date'].toString(),
-          'album_id': data['album_id'].toString(),
-          'perma_url': data['perma_url'].toString(),
-          'quality': preferredDownloadQuality,
-          'path': filepath,
-          'image': filepath2,
-          'image_url': data['image'].toString(),
-          'from_yt': data['language'].toString() == 'YouTube',
-          'dateAdded': DateTime.now().toString(),
-        };
-        Hive.box('downloads').put(songData['id'].toString(), songData);
-
-        ShowSnackBar().showSnackBar(
-          context,
-          '"${data['title'].toString()}" ${AppLocalizations.of(context)!.downed}',
-        );
-      } else {
-        download = true;
-        progress = 0.0;
-        File(filepath!).delete();
-        File(filepath2).delete();
-      }
-    });
   }
 }

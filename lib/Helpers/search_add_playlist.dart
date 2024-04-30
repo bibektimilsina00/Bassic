@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'dart:convert';
 
 import 'package:blackhole/APIs/api.dart';
@@ -30,22 +11,16 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class SearchAddPlaylist {
-  static Future<Map> addYtPlaylist(String inLink) async {
-    final String link = '$inLink&';
+  static Future<Map> addJioSaavnPlaylist(String inLink) async {
     try {
-      final RegExpMatch? id = RegExp(r'.*list\=(.*?)&').firstMatch(link);
-      if (id != null) {
-        final Playlist metadata =
-            await YouTubeServices().getPlaylistDetails(id[1]!);
-        final List<Video> tracks =
-            await YouTubeServices().getPlaylistSongs(id[1]!);
+      final String id = inLink.split('/').last;
+      if (id != '') {
+        final Map data =
+            await SaavnAPI().getSongFromToken(id, 'playlist', n: -1);
         return {
-          'title': metadata.title,
-          'image': metadata.thumbnails.standardResUrl,
-          'author': metadata.author,
-          'description': metadata.description,
-          'tracks': tracks,
-          'count': tracks.length,
+          'title': data['title'],
+          'count': data['list'].length,
+          'tracks': data['list'],
         };
       }
       return {};
@@ -89,6 +64,30 @@ class SearchAddPlaylist {
     }
   }
 
+  static Future<Map> addYtPlaylist(String inLink) async {
+    final String link = '$inLink&';
+    try {
+      final RegExpMatch? id = RegExp(r'.*list\=(.*?)&').firstMatch(link);
+      if (id != null) {
+        final Playlist metadata =
+            await YouTubeServices().getPlaylistDetails(id[1]!);
+        final List<Video> tracks =
+            await YouTubeServices().getPlaylistSongs(id[1]!);
+        return {
+          'title': metadata.title,
+          'image': metadata.thumbnails.standardResUrl,
+          'author': metadata.author,
+          'description': metadata.description,
+          'tracks': tracks,
+          'count': tracks.length,
+        };
+      }
+      return {};
+    } catch (e) {
+      return {};
+    }
+  }
+
   static Future<List> getRessoSongs({required String playlistId}) async {
     const url = 'https://api.resso.app/resso/playlist/detail?playlist_id=';
     final Uri link = Uri.parse(url + playlistId);
@@ -98,44 +97,6 @@ class SearchAddPlaylist {
     }
     final res = await jsonDecode(response.body);
     return res['tracks'] as List;
-  }
-
-  static Future<Map> addJioSaavnPlaylist(String inLink) async {
-    try {
-      final String id = inLink.split('/').last;
-      if (id != '') {
-        final Map data =
-            await SaavnAPI().getSongFromToken(id, 'playlist', n: -1);
-        return {
-          'title': data['title'],
-          'count': data['list'].length,
-          'tracks': data['list'],
-        };
-      }
-      return {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  static Stream<Map> ytSongsAdder(String playName, List tracks) async* {
-    int done = 0;
-    for (final track in tracks) {
-      String? trackName;
-      try {
-        trackName = (track as Video).title;
-        yield {'done': ++done, 'name': trackName};
-      } catch (e) {
-        yield {'done': ++done, 'name': ''};
-      }
-      try {
-        final List result =
-            await SaavnAPI().fetchTopSearchResult(trackName!.split('|')[0]);
-        addMapToPlaylist(playName, result[0] as Map);
-      } catch (e) {
-        // print('Error in $_done: $e');
-      }
-    }
   }
 
   static Stream<Map> ressoSongsAdder(String playName, List tracks) async* {
@@ -238,6 +199,26 @@ class SearchAddPlaylist {
           );
         },
       );
+    }
+  }
+
+  static Stream<Map> ytSongsAdder(String playName, List tracks) async* {
+    int done = 0;
+    for (final track in tracks) {
+      String? trackName;
+      try {
+        trackName = (track as Video).title;
+        yield {'done': ++done, 'name': trackName};
+      } catch (e) {
+        yield {'done': ++done, 'name': ''};
+      }
+      try {
+        final List result =
+            await SaavnAPI().fetchTopSearchResult(trackName!.split('|')[0]);
+        addMapToPlaylist(playName, result[0] as Map);
+      } catch (e) {
+        // print('Error in $_done: $e');
+      }
     }
   }
 }

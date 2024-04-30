@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
@@ -54,120 +35,6 @@ class SaavnAPI {
         '__call=search.artistOtherTopSongs', // still not used
   };
 
-  Future<Response> getResponse(
-    String params, {
-    bool usev4 = true,
-    bool useProxy = false,
-  }) async {
-    Uri url;
-    if (!usev4) {
-      url = Uri.https(
-        baseUrl,
-        '$apiStr&$params'.replaceAll('&api_version=4', ''),
-      );
-    } else {
-      url = Uri.https(baseUrl, '$apiStr&$params');
-    }
-    preferredLanguages =
-        preferredLanguages.map((lang) => lang.toLowerCase()).toList();
-    final String languageHeader = 'L=${preferredLanguages.join('%2C')}';
-    headers = {'cookie': languageHeader, 'Accept': '*/*'};
-
-    if (useProxy && settingsBox.get('useProxy', defaultValue: false) as bool) {
-      final proxyIP = settingsBox.get('proxyIp');
-      final proxyPort = settingsBox.get('proxyPort');
-      final HttpClient httpClient = HttpClient();
-      httpClient.findProxy = (uri) {
-        return 'PROXY $proxyIP:$proxyPort;';
-      };
-      httpClient.badCertificateCallback =
-          (X509Certificate cert, String host, int port) => Platform.isAndroid;
-      final IOClient myClient = IOClient(httpClient);
-      return myClient.get(url, headers: headers);
-    }
-    return get(url, headers: headers).onError((error, stackTrace) {
-      return Response(error.toString(), 404);
-    });
-  }
-
-  Future<Map> fetchHomePageData() async {
-    Map result = {};
-    try {
-      final res = await getResponse(endpoints['homeData']!);
-      if (res.statusCode == 200) {
-        final Map data = json.decode(res.body) as Map;
-        result = await FormatResponse.formatHomePageData(data);
-      }
-    } catch (e) {
-      log('Error in fetchHomePageData: $e');
-    }
-    return result;
-  }
-
-  Future<Map> getSongFromToken(
-    String token,
-    String type, {
-    int n = 10,
-    int p = 1,
-  }) async {
-    if (n == -1) {
-      final String params =
-          "token=$token&type=$type&n=5&p=$p&${endpoints['fromToken']}";
-      try {
-        final res = await getResponse(params);
-        if (res.statusCode == 200) {
-          final Map getMain = json.decode(res.body) as Map;
-          final String count = getMain['list_count'].toString();
-          final String params2 =
-              "token=$token&type=$type&n=$count&p=$p&${endpoints['fromToken']}";
-          final res2 = await getResponse(params2);
-          if (res2.statusCode == 200) {
-            final Map getMain2 = json.decode(res2.body) as Map;
-            if (type == 'album' || type == 'playlist') return getMain2;
-            final List responseList = getMain2['songs'] as List;
-            return {
-              'songs':
-                  await FormatResponse.formatSongsResponse(responseList, type),
-              'title': getMain2['title'],
-            };
-          }
-        }
-      } catch (e) {
-        log('Error in getSongFromToken: $e');
-      }
-      return {'songs': List.empty()};
-    } else {
-      final String params =
-          "token=$token&type=$type&n=$n&p=$p&${endpoints['fromToken']}";
-      try {
-        final res = await getResponse(params);
-        if (res.statusCode == 200) {
-          final Map getMain = json.decode(res.body) as Map;
-          if (type == 'album' || type == 'playlist') return getMain;
-          final List responseList = getMain['songs'] as List;
-          return {
-            'songs':
-                await FormatResponse.formatSongsResponse(responseList, type),
-            'title': getMain['title'],
-          };
-        }
-      } catch (e) {
-        log('Error in getSongFromToken: $e');
-      }
-      return {'songs': List.empty()};
-    }
-  }
-
-  Future<List> getReco(String pid) async {
-    final String params = "${endpoints['getReco']}&pid=$pid";
-    final res = await getResponse(params);
-    if (res.statusCode == 200) {
-      final List getMain = json.decode(res.body) as List;
-      return FormatResponse.formatSongsResponse(getMain, 'song');
-    }
-    return List.empty();
-  }
-
   Future<String?> createRadio({
     required List<String> names,
     required String stationType,
@@ -193,180 +60,6 @@ class SaavnAPI {
       return getMain['stationid']?.toString();
     }
     return null;
-  }
-
-  Future<List> getRadioSongs({
-    required String stationId,
-    int count = 20,
-    int next = 1,
-  }) async {
-    if (count > 0) {
-      final String params =
-          "stationid=$stationId&k=$count&next=$next&${endpoints['radioSongs']}";
-      final res = await getResponse(params);
-      if (res.statusCode == 200) {
-        final Map getMain = json.decode(res.body) as Map;
-        final List responseList = [];
-        for (int i = 0; i < count; i++) {
-          responseList.add(getMain[i.toString()]['song']);
-        }
-        return FormatResponse.formatSongsResponse(responseList, 'song');
-      }
-      return [];
-    }
-    return [];
-  }
-
-  Future<List<String>> getTopSearches() async {
-    try {
-      final res = await getResponse(endpoints['topSearches']!, useProxy: true);
-      if (res.statusCode == 200) {
-        final List getMain = json.decode(res.body) as List;
-        return getMain.map((element) {
-          return element['title'].toString();
-        }).toList();
-      }
-    } catch (e) {
-      log('Error in getTopSearches: $e');
-    }
-    return List.empty();
-  }
-
-  Future<Map> fetchSongSearchResults({
-    required String searchQuery,
-    int count = 20,
-    int page = 1,
-  }) async {
-    final String params =
-        "p=$page&q=$searchQuery&n=$count&${endpoints['getResults']}";
-
-    try {
-      final res = await getResponse(params, useProxy: true);
-      if (res.statusCode == 200) {
-        final Map getMain = json.decode(res.body) as Map;
-        final List responseList = getMain['results'] as List;
-        return {
-          'songs':
-              await FormatResponse.formatSongsResponse(responseList, 'song'),
-          'error': '',
-        };
-      } else {
-        return {
-          'songs': List.empty(),
-          'error': res.body,
-        };
-      }
-    } catch (e) {
-      log('Error in fetchSongSearchResults: $e');
-      return {
-        'songs': List.empty(),
-        'error': e,
-      };
-    }
-  }
-
-  Future<List<Map>> fetchSearchResults(String searchQuery) async {
-    final Map<String, List> result = {};
-    final Map<int, String> position = {};
-    List searchedAlbumList = [];
-    List searchedPlaylistList = [];
-    List searchedArtistList = [];
-    List searchedTopQueryList = [];
-    // List searchedShowList = [];
-    // List searchedEpisodeList = [];
-
-    final String params =
-        '__call=autocomplete.get&cc=in&includeMetaTags=1&query=$searchQuery';
-
-    final res = await getResponse(params, usev4: false, useProxy: true);
-    if (res.statusCode == 200) {
-      final getMain = json.decode(res.body);
-      final List albumResponseList = getMain['albums']['data'] as List;
-      position[getMain['albums']['position'] as int] = 'Albums';
-
-      final List playlistResponseList = getMain['playlists']['data'] as List;
-      position[getMain['playlists']['position'] as int] = 'Playlists';
-
-      final List artistResponseList = getMain['artists']['data'] as List;
-      position[getMain['artists']['position'] as int] = 'Artists';
-
-      // final List showResponseList = getMain['shows']['data'] as List;
-      // position[getMain['shows']['position'] as int] = 'Podcasts';
-
-      // final List episodeResponseList = getMain['episodes']['data'] as List;
-      // position[getMain['episodes']['position'] as int] = 'Episodes';
-
-      final List topQuery = getMain['topquery']['data'] as List;
-
-      searchedAlbumList =
-          await FormatResponse.formatAlbumResponse(albumResponseList, 'album');
-      if (searchedAlbumList.isNotEmpty) {
-        result['Albums'] = searchedAlbumList;
-      }
-
-      searchedPlaylistList = await FormatResponse.formatAlbumResponse(
-        playlistResponseList,
-        'playlist',
-      );
-      if (searchedPlaylistList.isNotEmpty) {
-        result['Playlists'] = searchedPlaylistList;
-      }
-
-      // searchedShowList =
-      //     await FormatResponse().formatAlbumResponse(showResponseList, 'show');
-      // if (searchedShowList.isNotEmpty) {
-      //   result['Podcasts'] = searchedShowList;
-      // }
-
-      // searchedEpisodeList = await FormatResponse()
-      //     .formatAlbumResponse(episodeResponseList, 'episode');
-      // if (searchedEpisodeList.isNotEmpty) {
-      //   result['Episodes'] = searchedEpisodeList;
-      // }
-
-      searchedArtistList = await FormatResponse.formatAlbumResponse(
-        artistResponseList,
-        'artist',
-      );
-      if (searchedArtistList.isNotEmpty) {
-        result['Artists'] = searchedArtistList;
-      }
-
-      if (topQuery.isNotEmpty &&
-          (topQuery[0]['type'] != 'playlist' ||
-              topQuery[0]['type'] == 'artist' ||
-              topQuery[0]['type'] == 'album')) {
-        position[getMain['topquery']['position'] as int] = 'Top Result';
-        position[getMain['songs']['position'] as int] = 'Songs';
-
-        switch (topQuery[0]['type'] as String) {
-          case 'artist':
-            searchedTopQueryList =
-                await FormatResponse.formatAlbumResponse(topQuery, 'artist');
-            break;
-          case 'album':
-            searchedTopQueryList =
-                await FormatResponse.formatAlbumResponse(topQuery, 'album');
-            break;
-          case 'playlist':
-            searchedTopQueryList =
-                await FormatResponse.formatAlbumResponse(topQuery, 'playlist');
-            break;
-          default:
-            break;
-        }
-        if (searchedTopQueryList.isNotEmpty) {
-          result['Top Result'] = searchedTopQueryList;
-        }
-      } else {
-        if (topQuery.isNotEmpty && topQuery[0]['type'] == 'song') {
-          position[getMain['topquery']['position'] as int] = 'Songs';
-        } else {
-          position[getMain['songs']['position'] as int] = 'Songs';
-        }
-      }
-    }
-    return [result, position];
   }
 
   Future<List<Map>> fetchAlbums({
@@ -513,6 +206,20 @@ class SaavnAPI {
     return data;
   }
 
+  Future<Map> fetchHomePageData() async {
+    Map result = {};
+    try {
+      final res = await getResponse(endpoints['homeData']!);
+      if (res.statusCode == 200) {
+        final Map data = json.decode(res.body) as Map;
+        result = await FormatResponse.formatHomePageData(data);
+      }
+    } catch (e) {
+      log('Error in fetchHomePageData: $e');
+    }
+    return result;
+  }
+
   Future<Map> fetchPlaylistSongs(String playlistId) async {
     final String params =
         '${endpoints["playlistDetails"]}&cc=in&listid=$playlistId';
@@ -549,17 +256,108 @@ class SaavnAPI {
     }
   }
 
-  Future<List> fetchTopSearchResult(String searchQuery) async {
-    final String params = 'p=1&q=$searchQuery&n=10&${endpoints["getResults"]}';
-    final res = await getResponse(params, useProxy: true);
+  Future<List<Map>> fetchSearchResults(String searchQuery) async {
+    final Map<String, List> result = {};
+    final Map<int, String> position = {};
+    List searchedAlbumList = [];
+    List searchedPlaylistList = [];
+    List searchedArtistList = [];
+    List searchedTopQueryList = [];
+    // List searchedShowList = [];
+    // List searchedEpisodeList = [];
+
+    final String params =
+        '__call=autocomplete.get&cc=in&includeMetaTags=1&query=$searchQuery';
+
+    final res = await getResponse(params, usev4: false, useProxy: true);
     if (res.statusCode == 200) {
       final getMain = json.decode(res.body);
-      final List responseList = getMain['results'] as List;
-      return [
-        await FormatResponse.formatSingleSongResponse(responseList[0] as Map)
-      ];
+      final List albumResponseList = getMain['albums']['data'] as List;
+      position[getMain['albums']['position'] as int] = 'Albums';
+
+      final List playlistResponseList = getMain['playlists']['data'] as List;
+      position[getMain['playlists']['position'] as int] = 'Playlists';
+
+      final List artistResponseList = getMain['artists']['data'] as List;
+      position[getMain['artists']['position'] as int] = 'Artists';
+
+      // final List showResponseList = getMain['shows']['data'] as List;
+      // position[getMain['shows']['position'] as int] = 'Podcasts';
+
+      // final List episodeResponseList = getMain['episodes']['data'] as List;
+      // position[getMain['episodes']['position'] as int] = 'Episodes';
+
+      final List topQuery = getMain['topquery']['data'] as List;
+
+      searchedAlbumList =
+          await FormatResponse.formatAlbumResponse(albumResponseList, 'album');
+      if (searchedAlbumList.isNotEmpty) {
+        result['Albums'] = searchedAlbumList;
+      }
+
+      searchedPlaylistList = await FormatResponse.formatAlbumResponse(
+        playlistResponseList,
+        'playlist',
+      );
+      if (searchedPlaylistList.isNotEmpty) {
+        result['Playlists'] = searchedPlaylistList;
+      }
+
+      // searchedShowList =
+      //     await FormatResponse().formatAlbumResponse(showResponseList, 'show');
+      // if (searchedShowList.isNotEmpty) {
+      //   result['Podcasts'] = searchedShowList;
+      // }
+
+      // searchedEpisodeList = await FormatResponse()
+      //     .formatAlbumResponse(episodeResponseList, 'episode');
+      // if (searchedEpisodeList.isNotEmpty) {
+      //   result['Episodes'] = searchedEpisodeList;
+      // }
+
+      searchedArtistList = await FormatResponse.formatAlbumResponse(
+        artistResponseList,
+        'artist',
+      );
+      if (searchedArtistList.isNotEmpty) {
+        result['Artists'] = searchedArtistList;
+      }
+
+      if (topQuery.isNotEmpty &&
+          (topQuery[0]['type'] != 'playlist' ||
+              topQuery[0]['type'] == 'artist' ||
+              topQuery[0]['type'] == 'album')) {
+        position[getMain['topquery']['position'] as int] = 'Top Result';
+        position[getMain['songs']['position'] as int] = 'Songs';
+
+        switch (topQuery[0]['type'] as String) {
+          case 'artist':
+            searchedTopQueryList =
+                await FormatResponse.formatAlbumResponse(topQuery, 'artist');
+            break;
+          case 'album':
+            searchedTopQueryList =
+                await FormatResponse.formatAlbumResponse(topQuery, 'album');
+            break;
+          case 'playlist':
+            searchedTopQueryList =
+                await FormatResponse.formatAlbumResponse(topQuery, 'playlist');
+            break;
+          default:
+            break;
+        }
+        if (searchedTopQueryList.isNotEmpty) {
+          result['Top Result'] = searchedTopQueryList;
+        }
+      } else {
+        if (topQuery.isNotEmpty && topQuery[0]['type'] == 'song') {
+          position[getMain['topquery']['position'] as int] = 'Songs';
+        } else {
+          position[getMain['songs']['position'] as int] = 'Songs';
+        }
+      }
     }
-    return List.empty();
+    return [result, position];
   }
 
   Future<Map> fetchSongDetails(String songId) async {
@@ -576,5 +374,188 @@ class SaavnAPI {
       log('Error in fetchSongDetails: $e');
     }
     return {};
+  }
+
+  Future<Map> fetchSongSearchResults({
+    required String searchQuery,
+    int count = 20,
+    int page = 1,
+  }) async {
+    final String params =
+        "p=$page&q=$searchQuery&n=$count&${endpoints['getResults']}";
+
+    try {
+      final res = await getResponse(params, useProxy: true);
+      if (res.statusCode == 200) {
+        final Map getMain = json.decode(res.body) as Map;
+        final List responseList = getMain['results'] as List;
+        return {
+          'songs':
+              await FormatResponse.formatSongsResponse(responseList, 'song'),
+          'error': '',
+        };
+      } else {
+        return {
+          'songs': List.empty(),
+          'error': res.body,
+        };
+      }
+    } catch (e) {
+      log('Error in fetchSongSearchResults: $e');
+      return {
+        'songs': List.empty(),
+        'error': e,
+      };
+    }
+  }
+
+  Future<List> fetchTopSearchResult(String searchQuery) async {
+    final String params = 'p=1&q=$searchQuery&n=10&${endpoints["getResults"]}';
+    final res = await getResponse(params, useProxy: true);
+    if (res.statusCode == 200) {
+      final getMain = json.decode(res.body);
+      final List responseList = getMain['results'] as List;
+      return [
+        await FormatResponse.formatSingleSongResponse(responseList[0] as Map)
+      ];
+    }
+    return List.empty();
+  }
+
+  Future<List> getRadioSongs({
+    required String stationId,
+    int count = 20,
+    int next = 1,
+  }) async {
+    if (count > 0) {
+      final String params =
+          "stationid=$stationId&k=$count&next=$next&${endpoints['radioSongs']}";
+      final res = await getResponse(params);
+      if (res.statusCode == 200) {
+        final Map getMain = json.decode(res.body) as Map;
+        final List responseList = [];
+        for (int i = 0; i < count; i++) {
+          responseList.add(getMain[i.toString()]['song']);
+        }
+        return FormatResponse.formatSongsResponse(responseList, 'song');
+      }
+      return [];
+    }
+    return [];
+  }
+
+  Future<List> getReco(String pid) async {
+    final String params = "${endpoints['getReco']}&pid=$pid";
+    final res = await getResponse(params);
+    if (res.statusCode == 200) {
+      final List getMain = json.decode(res.body) as List;
+      return FormatResponse.formatSongsResponse(getMain, 'song');
+    }
+    return List.empty();
+  }
+
+  Future<Response> getResponse(
+    String params, {
+    bool usev4 = true,
+    bool useProxy = false,
+  }) async {
+    Uri url;
+    if (!usev4) {
+      url = Uri.https(
+        baseUrl,
+        '$apiStr&$params'.replaceAll('&api_version=4', ''),
+      );
+    } else {
+      url = Uri.https(baseUrl, '$apiStr&$params');
+    }
+    preferredLanguages =
+        preferredLanguages.map((lang) => lang.toLowerCase()).toList();
+    final String languageHeader = 'L=${preferredLanguages.join('%2C')}';
+    headers = {'cookie': languageHeader, 'Accept': '*/*'};
+
+    if (useProxy && settingsBox.get('useProxy', defaultValue: false) as bool) {
+      final proxyIP = settingsBox.get('proxyIp');
+      final proxyPort = settingsBox.get('proxyPort');
+      final HttpClient httpClient = HttpClient();
+      httpClient.findProxy = (uri) {
+        return 'PROXY $proxyIP:$proxyPort;';
+      };
+      httpClient.badCertificateCallback =
+          (X509Certificate cert, String host, int port) => Platform.isAndroid;
+      final IOClient myClient = IOClient(httpClient);
+      return myClient.get(url, headers: headers);
+    }
+    return get(url, headers: headers).onError((error, stackTrace) {
+      return Response(error.toString(), 404);
+    });
+  }
+
+  Future<Map> getSongFromToken(
+    String token,
+    String type, {
+    int n = 10,
+    int p = 1,
+  }) async {
+    if (n == -1) {
+      final String params =
+          "token=$token&type=$type&n=5&p=$p&${endpoints['fromToken']}";
+      try {
+        final res = await getResponse(params);
+        if (res.statusCode == 200) {
+          final Map getMain = json.decode(res.body) as Map;
+          final String count = getMain['list_count'].toString();
+          final String params2 =
+              "token=$token&type=$type&n=$count&p=$p&${endpoints['fromToken']}";
+          final res2 = await getResponse(params2);
+          if (res2.statusCode == 200) {
+            final Map getMain2 = json.decode(res2.body) as Map;
+            if (type == 'album' || type == 'playlist') return getMain2;
+            final List responseList = getMain2['songs'] as List;
+            return {
+              'songs':
+                  await FormatResponse.formatSongsResponse(responseList, type),
+              'title': getMain2['title'],
+            };
+          }
+        }
+      } catch (e) {
+        log('Error in getSongFromToken: $e');
+      }
+      return {'songs': List.empty()};
+    } else {
+      final String params =
+          "token=$token&type=$type&n=$n&p=$p&${endpoints['fromToken']}";
+      try {
+        final res = await getResponse(params);
+        if (res.statusCode == 200) {
+          final Map getMain = json.decode(res.body) as Map;
+          if (type == 'album' || type == 'playlist') return getMain;
+          final List responseList = getMain['songs'] as List;
+          return {
+            'songs':
+                await FormatResponse.formatSongsResponse(responseList, type),
+            'title': getMain['title'],
+          };
+        }
+      } catch (e) {
+        log('Error in getSongFromToken: $e');
+      }
+      return {'songs': List.empty()};
+    }
+  }
+
+  Future<List<String>> getTopSearches() async {
+    try {
+      final res = await getResponse(endpoints['topSearches']!, useProxy: true);
+      if (res.statusCode == 200) {
+        final List getMain = json.decode(res.body) as List;
+        return getMain.map((element) {
+          return element['title'].toString();
+        }).toList();
+      }
+    } catch (e) {
+      log('Error in getTopSearches: $e');
+    }
+    return List.empty();
   }
 }

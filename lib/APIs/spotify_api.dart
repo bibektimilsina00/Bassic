@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -40,9 +21,6 @@ class SpotifyApi {
   final String spotifyTrackBaseUrl = 'https://api.spotify.com/v1/playlists';
   final String spotifyBaseUrl = 'https://accounts.spotify.com';
   final String requestToken = 'https://accounts.spotify.com/api/token';
-
-  String requestAuthorization() =>
-      'https://accounts.spotify.com/authorize?client_id=$clientID&response_type=code&redirect_uri=$redirectUrl&scope=${_scopes.join('%20')}';
 
   // Future<String> authenticate() async {
   //   final url = SpotifyApi().requestAuthorization();
@@ -89,28 +67,6 @@ class SpotifyApi {
     return [];
   }
 
-  Future<List> getUserPlaylists(String accessToken) async {
-    try {
-      final Uri path = Uri.parse('$spotifyPlaylistBaseUrl?limit=50');
-
-      final response = await get(
-        path,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json'
-        },
-      );
-      if (response.statusCode == 200) {
-        final result = jsonDecode(response.body);
-        final List playlists = result['items'] as List;
-        return playlists;
-      }
-    } catch (e) {
-      // print('Error: $e');
-    }
-    return [];
-  }
-
   Future<Map> getTracksOfPlaylist(
     String accessToken,
     String playListId,
@@ -139,4 +95,29 @@ class SpotifyApi {
     }
     return {};
   }
+
+  Future<List> getUserPlaylists(String accessToken) async {
+    try {
+      final Uri path = Uri.parse('$spotifyPlaylistBaseUrl?limit=50');
+
+      final response = await get(
+        path,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Accept': 'application/json'
+        },
+      );
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        final List playlists = result['items'] as List;
+        return playlists;
+      }
+    } catch (e) {
+      // print('Error: $e');
+    }
+    return [];
+  }
+
+  String requestAuthorization() =>
+      'https://accounts.spotify.com/authorize?client_id=$clientID&response_type=code&redirect_uri=$redirectUrl&scope=${_scopes.join('%20')}';
 }

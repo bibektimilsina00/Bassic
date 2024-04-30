@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -56,31 +37,6 @@ Future<void> exportPlaylist(
     context,
     '${AppLocalizations.of(context)!.exported} "$showName"',
   );
-}
-
-Future<void> sharePlaylist(
-  BuildContext context,
-  String playlistName,
-  String showName,
-) async {
-  final Directory appDir = await getApplicationDocumentsDirectory();
-  final String temp = appDir.path;
-
-  await Hive.openBox(playlistName);
-  final Box playlistBox = Hive.box(playlistName);
-  final Map songsMap = playlistBox.toMap();
-  final String songs = json.encode(songsMap);
-  final File file = await File('$temp/$showName.json').create(recursive: true);
-  await file.writeAsString(songs);
-
-  await Share.shareFiles(
-    [file.path],
-    text: AppLocalizations.of(context)!.playlistShareText,
-  );
-  await Future.delayed(const Duration(seconds: 10), () {});
-  if (await file.exists()) {
-    await file.delete();
-  }
 }
 
 Future<List> importPlaylist(BuildContext context, List playlistNames) async {
@@ -150,4 +106,29 @@ Future<List> importPlaylist(BuildContext context, List playlistNames) async {
     );
   }
   return playlistNames;
+}
+
+Future<void> sharePlaylist(
+  BuildContext context,
+  String playlistName,
+  String showName,
+) async {
+  final Directory appDir = await getApplicationDocumentsDirectory();
+  final String temp = appDir.path;
+
+  await Hive.openBox(playlistName);
+  final Box playlistBox = Hive.box(playlistName);
+  final Map songsMap = playlistBox.toMap();
+  final String songs = json.encode(songsMap);
+  final File file = await File('$temp/$showName.json').create(recursive: true);
+  await file.writeAsString(songs);
+
+  await Share.shareFiles(
+    [file.path],
+    text: AppLocalizations.of(context)!.playlistShareText,
+  );
+  await Future.delayed(const Duration(seconds: 10), () {});
+  if (await file.exists()) {
+    await file.delete();
+  }
 }

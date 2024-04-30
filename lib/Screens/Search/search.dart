@@ -1,22 +1,3 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'package:blackhole/APIs/api.dart';
 import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
 import 'package:blackhole/CustomWidgets/download_button.dart';
@@ -24,7 +5,7 @@ import 'package:blackhole/CustomWidgets/empty_screen.dart';
 import 'package:blackhole/CustomWidgets/gradient_containers.dart';
 import 'package:blackhole/CustomWidgets/like_button.dart';
 import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/search_bar.dart';
+import 'package:blackhole/CustomWidgets/search_bar.dart' as sb;
 import 'package:blackhole/CustomWidgets/snackbar.dart';
 import 'package:blackhole/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:blackhole/Screens/Common/song_list.dart';
@@ -73,65 +54,6 @@ class _SearchPageState extends State<SearchPage> {
   final controller = TextEditingController();
 
   @override
-  void initState() {
-    controller.text = widget.query;
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> fetchResults() async {
-    // this fetches top 5 songs results
-    final Map result = await SaavnAPI().fetchSongSearchResults(
-      searchQuery: query == '' ? widget.query : query,
-      count: 5,
-    );
-    final List songResults = result['songs'] as List;
-    if (songResults.isNotEmpty) searchedData['Songs'] = songResults;
-    fetched = true;
-    // this fetches albums, playlists, artists, etc
-    final List<Map> value =
-        await SaavnAPI().fetchSearchResults(query == '' ? widget.query : query);
-
-    searchedData.addEntries(value[0].entries);
-    position = value[1];
-    sortedKeys = position.keys.toList()..sort();
-    albumFetched = true;
-    setState(
-      () {},
-    );
-  }
-
-  Future<void> getTrendingSearch() async {
-    topSearch.value = await SaavnAPI().getTopSearches();
-  }
-
-  Widget nothingFound(BuildContext context) {
-    if (!alertShown) {
-      ShowSnackBar().showSnackBar(
-        context,
-        AppLocalizations.of(context)!.useVpn,
-        duration: const Duration(seconds: 5),
-      );
-      alertShown = true;
-    }
-    return emptyScreen(
-      context,
-      0,
-      ':( ',
-      100,
-      AppLocalizations.of(context)!.sorry,
-      60,
-      AppLocalizations.of(context)!.resultsNotFound,
-      20,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     fromHome ??= widget.fromHome;
     if (!status) {
@@ -146,7 +68,7 @@ class _SearchPageState extends State<SearchPage> {
               child: Scaffold(
                 resizeToAvoidBottomInset: false,
                 backgroundColor: Colors.transparent,
-                body: SearchBar(
+                body: sb.SearchBar(
                   isYt: false,
                   controller: controller,
                   liveSearch: liveSearch,
@@ -374,7 +296,7 @@ class _SearchPageState extends State<SearchPage> {
                                                                       context,
                                                                     )
                                                                         .textTheme
-                                                                        .caption!
+                                                                        .bodySmall!
                                                                         .color,
                                                                     fontWeight:
                                                                         FontWeight
@@ -389,7 +311,7 @@ class _SearchPageState extends State<SearchPage> {
                                                                     context,
                                                                   )
                                                                       .textTheme
-                                                                      .caption!
+                                                                      .bodySmall!
                                                                       .color,
                                                                 ),
                                                               ],
@@ -575,7 +497,7 @@ class _SearchPageState extends State<SearchPage> {
                                                                     ? PlayScreen(
                                                                         songsList: [
                                                                           value[
-                                                                              index]
+                                                                              index],
                                                                         ],
                                                                         index:
                                                                             0,
@@ -623,6 +545,65 @@ class _SearchPageState extends State<SearchPage> {
           ],
         ),
       ),
+    );
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchResults() async {
+    // this fetches top 5 songs results
+    final Map result = await SaavnAPI().fetchSongSearchResults(
+      searchQuery: query == '' ? widget.query : query,
+      count: 5,
+    );
+    final List songResults = result['songs'] as List;
+    if (songResults.isNotEmpty) searchedData['Songs'] = songResults;
+    fetched = true;
+    // this fetches albums, playlists, artists, etc
+    final List<Map> value =
+        await SaavnAPI().fetchSearchResults(query == '' ? widget.query : query);
+
+    searchedData.addEntries(value[0].entries);
+    position = value[1];
+    sortedKeys = position.keys.toList()..sort();
+    albumFetched = true;
+    setState(
+      () {},
+    );
+  }
+
+  Future<void> getTrendingSearch() async {
+    topSearch.value = await SaavnAPI().getTopSearches();
+  }
+
+  @override
+  void initState() {
+    controller.text = widget.query;
+    super.initState();
+  }
+
+  Widget nothingFound(BuildContext context) {
+    if (!alertShown) {
+      ShowSnackBar().showSnackBar(
+        context,
+        AppLocalizations.of(context)!.useVpn,
+        duration: const Duration(seconds: 5),
+      );
+      alertShown = true;
+    }
+    return emptyScreen(
+      context,
+      0,
+      ':( ',
+      100,
+      AppLocalizations.of(context)!.sorry,
+      60,
+      AppLocalizations.of(context)!.resultsNotFound,
+      20,
     );
   }
 }

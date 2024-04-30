@@ -1,24 +1,5 @@
-/*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
- * 
- * BlackHole is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * BlackHole is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Copyright (c) 2021-2022, Wali Ullah Shuvo
- */
-
 import 'package:blackhole/CustomWidgets/on_hover.dart';
-import 'package:blackhole/CustomWidgets/search_bar.dart';
+import 'package:blackhole/CustomWidgets/search_bar.dart' as sb;
 import 'package:blackhole/Screens/YouTube/youtube_playlist.dart';
 import 'package:blackhole/Screens/YouTube/youtube_search.dart';
 import 'package:blackhole/Services/youtube_services.dart';
@@ -29,9 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 
-bool status = false;
-List searchedList = Hive.box('cache').get('ytHome', defaultValue: []) as List;
 List headList = Hive.box('cache').get('ytHomeHead', defaultValue: []) as List;
+List searchedList = Hive.box('cache').get('ytHome', defaultValue: []) as List;
+bool status = false;
 
 class YouTube extends StatefulWidget {
   const YouTube({super.key});
@@ -59,49 +40,6 @@ class _YouTubeState extends State<YouTube>
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
-    if (!status) {
-      YouTubeServices().getMusicHome().then((value) {
-        status = true;
-        if (value.isNotEmpty) {
-          setState(() {
-            searchedList = value['body'] ?? [];
-            headList = value['head'] ?? [];
-
-            Hive.box('cache').put('ytHome', value['body']);
-            Hive.box('cache').put('ytHomeHead', value['head']);
-          });
-        } else {
-          status = false;
-        }
-      });
-    }
-    // if (headList.isNotEmpty) {
-    // Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-    //   if (_currentPage < headList.length - 1) {
-    //     _currentPage++;
-    //   } else {
-    //     _currentPage = 0;
-    //   }
-    //   if (_pageController.hasClients) {
-    //     _pageController.animateToPage(
-    //       _currentPage,
-    //       duration: const Duration(milliseconds: 350),
-    //       curve: Curves.easeIn,
-    //     );
-    //   }
-    // });
-    // }
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext cntxt) {
     super.build(context);
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -113,7 +51,7 @@ class _YouTubeState extends State<YouTube>
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
-      body: SearchBar(
+      body: sb.SearchBar(
         isYt: true,
         controller: _controller,
         liveSearch: true,
@@ -355,13 +293,13 @@ class _YouTubeState extends State<YouTube>
                                                       fontSize: 11,
                                                       color: Theme.of(context)
                                                           .textTheme
-                                                          .caption!
+                                                          .bodySmall!
                                                           .color,
                                                     ),
                                                   ),
                                                   const SizedBox(
                                                     height: 5.0,
-                                                  )
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -403,5 +341,48 @@ class _YouTubeState extends State<YouTube>
               ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    if (!status) {
+      YouTubeServices().getMusicHome().then((value) {
+        status = true;
+        if (value.isNotEmpty) {
+          setState(() {
+            searchedList = value['body'] ?? [];
+            headList = value['head'] ?? [];
+
+            Hive.box('cache').put('ytHome', value['body']);
+            Hive.box('cache').put('ytHomeHead', value['head']);
+          });
+        } else {
+          status = false;
+        }
+      });
+    }
+    // if (headList.isNotEmpty) {
+    // Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+    //   if (_currentPage < headList.length - 1) {
+    //     _currentPage++;
+    //   } else {
+    //     _currentPage = 0;
+    //   }
+    //   if (_pageController.hasClients) {
+    //     _pageController.animateToPage(
+    //       _currentPage,
+    //       duration: const Duration(milliseconds: 350),
+    //       curve: Curves.easeIn,
+    //     );
+    //   }
+    // });
+    // }
+    super.initState();
   }
 }
