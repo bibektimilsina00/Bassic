@@ -84,7 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               children: [
                                 RichText(
                                   text: TextSpan(
-                                    text: 'Black\nHole\n',
+                                    text: 'Bassic\nMusic\n',
                                     style: TextStyle(
                                       height: 0.97,
                                       fontSize: 80,
@@ -138,7 +138,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                         color: Colors.black26,
                                         blurRadius: 5.0,
                                         offset: Offset(0.0, 3.0),
-                                      )
+                                      ),
                                     ],
                                   ),
                                   child: TextField(
@@ -208,7 +208,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                           color: Colors.black26,
                                           blurRadius: 5.0,
                                           offset: Offset(0.0, 3.0),
-                                        )
+                                        ),
                                       ],
                                     ),
                                     child: Center(
